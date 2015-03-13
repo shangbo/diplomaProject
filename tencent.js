@@ -14,7 +14,7 @@ var casper = require('casper').create({
     // },
     onResourceRequested: function(){
         count = count + 1;
-        console.log(arguments[1]['method'] + ":" + arguments[1]['url']);
+        console.log(arguments[1]['method'] + ": " + arguments[1]['url']);
     },
     verbose: true,
     // logLevel: 'debug',
@@ -62,14 +62,14 @@ casper.then(function() { //get link
     links = this.evaluate(getLinks);
     for(var i=0; i<links.length; i++){
         if(links[i]){
-            console.log("New Link:" + links[i]);
+            console.log("New Link: " + links[i]);
         }
     }
     var iframes = [];
     iframes = this.evaluate(getIframes);
     for(var i=0; i<iframes.length; i++){
         if(iframes[i]){
-            console.log("New Iframe:" + iframes[i]);
+            console.log("New Iframe: " + iframes[i]);
         }
     }
 });
