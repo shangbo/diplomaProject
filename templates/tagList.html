@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Tag:{{ tag_name }}</title>
+    <link rel="stylesheet" href="../static/css/amazeui.min.css">
+    <link rel="stylesheet" href="../static/css/app.css">
+    <link rel="stylesheet" href="../static/css/styles/atelier-dune.dark.css">    
+</head>
+<body>
+    <ul>
+        {% for key in essays_info %}
+        <li><a href="/essay/{{ essays_info[key][2] }}/{{ essays_info[key][1] }}.html" class="essay_page">{{ essays_info[key][0] }}</a></li>
+        {% endfor %}
+    </ul>
+    <script type="text/javascript" src="../static/js/jquery.min.js"></script>
+    <script type="text/javascript" src="../static/js/amazeui.min.js"></script>
+    <script type="text/javascript" src="../static/js/highlight.pack.js"></script>
+</body>
+</html>
