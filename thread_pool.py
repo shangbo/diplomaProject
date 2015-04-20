@@ -58,6 +58,15 @@ class Worker(threading.Thread):
         if link:
             self.work_queue.put((deal_page, link))
 
+    def _check_same_domain_name(self, url1, url2):
+        if url1[0].split('/')[2].split('.')[-1] == url2.split('/')[2].split('.')[-1] and\
+            url1[0].split('/')[2].split('.')[-2] == url2.split('/')[2].split('.')[-2]:
+            print url1[0]
+            print url2
+            return 1
+        else:
+            return 0
+
     def _deal_get_request(self, item):
         global COUNT
         link = ""
@@ -72,47 +81,49 @@ class Worker(threading.Thread):
                 link = link_tuple[0]
                 para_str = "".join(list(link_tuple[1:]))
             paras = []
-            
-            if not (link.endswith(".js") or link.endswith(".css")):
-                conn = db_op.db_connect()
-                if para_str.find("&") != -1:
-                    para_list = para_str.split("&")
-                    for para_item in para_list:
-                        if para_item.find("=") != -1:
-                            arg1 = tuple(para_item.split("="))
-                            paras.append(arg1)
-                    if paras:
-                        m = md5.new()
-                        m.update(link+str(paras))
-                        md5_string = m.hexdigest()
-                        if not db_op.db_check_md5(conn, md5_string):
-                            COUNT += 1
-                            print COUNT
-                            para_s = pkl.dumps(paras)
-                            argument = (self.root_url[0], "GET", time.strftime(ISOTIMEFORMAT, time.localtime()), md5_string, link, para_s)
-                            print md5_string
-                            print "stored into database"
-                            self.work_queue.put((request_store, argument))
-                        else:
-                            print "old url"
-                else:
-                    if para_str.find("=") != -1:
-                        paras.append(tuple(para_str.split("=")))
-                        m = md5.new()
-                        m.update(link+str(paras))
-                        md5_string = m.hexdigest()
-                        if not db_op.db_check_md5(conn, md5_string):
-                            COUNT += 1
-                            print COUNT
-                            para_s = pkl.dumps(paras)
-                            argument = (self.root_url[0], "GET", time.strftime(ISOTIMEFORMAT, time.localtime()), md5_string, link, para_s)
-                            print md5_string
-                            print "stored into database"
-                            self.work_queue.put((request_store, argument))
-                        else:
-                            print "old url"
-                db_op.db_close(conn)
-                print "---------------"
+            if self._check_same_domain_name(self.root_url, link):
+                if not (link.endswith(".js") or link.endswith(".css")):
+                    conn = db_op.db_connect()
+                    if para_str.find("&") != -1:
+                        para_list = para_str.split("&")
+                        for para_item in para_list:
+                            if para_item.find("=") != -1:
+                                arg1 = tuple(para_item.split("="))
+                                paras.append(arg1)
+                        if paras:
+                            m = md5.new()
+                            m.update(link+str(paras))
+                            md5_string = m.hexdigest()
+                            if not db_op.db_check_md5(conn, md5_string):
+                                COUNT += 1
+                                print COUNT
+                                para_s = pkl.dumps(paras)
+                                argument = (self.root_url[0], "GET", time.strftime(ISOTIMEFORMAT, time.localtime()), md5_string, link, para_s)
+                                print md5_string
+                                print "stored into database"
+                                self.work_queue.put((request_store, argument))
+                            else:
+                                print "old url"
+                    else:
+                        if para_str.find("=") != -1:
+                            paras.append(tuple(para_str.split("=")))
+                            m = md5.new()
+                            m.update(link+str(paras))
+                            md5_string = m.hexdigest()
+                            if not db_op.db_check_md5(conn, md5_string):
+                                COUNT += 1
+                                print COUNT
+                                para_s = pkl.dumps(paras)
+                                argument = (self.root_url[0], "GET", time.strftime(ISOTIMEFORMAT, time.localtime()), md5_string, link, para_s)
+                                print md5_string
+                                print "stored into database"
+                                self.work_queue.put((request_store, argument))
+                            else:
+                                print "old url"
+                    db_op.db_close(conn)
+                    print "---------------"
+            else:
+                print "other website link"
         else:
             if not (link.endswith(".js") or link.endswith(".css")):
                 self.work_queue.put((deal_page, link))
@@ -146,6 +157,8 @@ class ThreadPool(object):
             worker.join()
             if worker.is_alive() and not self.work_queue.empty():
                 self.worker.append(worker)
+
+
 
 
 def deal_page(thread_name, link):

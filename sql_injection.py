@@ -33,8 +33,9 @@ def execute_sqlmap(item):
         pass
         #TODO POST
     else:
+        url = '"' + url + '"'
         print url
-        proc = subprocess.Popen(["sqlmap", "-u", url], stdout=subprocess.PIPE)
+        proc = subprocess.Popen(["/opt/sqlmap/sqlmap.py", '-u', url], stdout=subprocess.PIPE)
         print proc.communicate()[0]
 
 def main():
