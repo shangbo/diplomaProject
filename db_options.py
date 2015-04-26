@@ -37,3 +37,11 @@ def db_get_sql_injection_url(conn):
     info = cursor.fetchall()
     cursor.close()
     return info
+
+
+def db_get_count(conn):
+    cursor = conn.cursor()
+    read_sql = "select * from requests"
+    cursor.execute(read_sql)
+    info = cursor.fetchone()
+    return info[0]
