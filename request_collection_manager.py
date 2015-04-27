@@ -32,20 +32,20 @@ class PageWorker(threading.Thread):
         self.start()
 
     def run(self):
-        while True:
-            if not self.stop_flag[0]:
-                try:
-                    callback, args = self.page_queue.get(timeout = self.time_out)
-                    res = callback(self.getName(), args)
-                    self._deal_info(res)
-                except Queue.Empty:
-                    pass
-                    # print "".join([self.getName(),":no task\n"])
-                except:
-                    print "thread %s had some error: %s"  % (self.getName(), sys.exc_info())
-            else:
-                pass #TODO
-
+        while not self.stop_flag[0]:
+            try:
+                callback, args = self.page_queue.get(timeout = self.time_out)
+                res = callback(self.getName(), args)
+                self._deal_info(res)
+            except Queue.Empty:
+                pass
+                # print "".join([self.getName(),":no task\n"])
+            except:
+                print "thread %s had some error: %s"  % (self.getName(), sys.exc_info())
+        else:
+            while not self.page_queue.empty():
+                self.page_queue.get()
+            print "".join([self.getName(), " finished"])
 
     def _deal_info(self, result):
         result_list = result.split("\n")
@@ -153,20 +153,21 @@ class StoreWorker(threading.Thread):
         self.start()
 
     def run(self):
-        while True:
-            if not self.stop_flag[0]:
-                try:
-                    callback, args = self.store_queue.get(timeout = self.time_out)
-                    callback(self.getName(), args)
-                    # print "stored into database"
-                    self._is_stop()
-                except Queue.Empty:
-                    pass
-                    # print "".join([self.getName(),":no task\n"])
-                except:
-                    print "thread %s had some error: %s" % (self.getName(), sys.exc_info()[:2])
-            else:
-                pass #TODO
+        while not self.stop_flag[0]:
+            try:
+                callback, args = self.store_queue.get(timeout = self.time_out)
+                callback(self.getName(), args)
+                # print "stored into database"
+                self._is_stop()
+            except Queue.Empty:
+                pass
+                # print "".join([self.getName(),":no task\n"])
+            except:
+                print "thread %s had some error: %s" % (self.getName(), sys.exc_info()[:2])
+        else:
+            while not self.store_queue.empty():
+                self.store_queue.get()
+            print "".join([self.getName(), " finished"])
 
     def _is_stop(self):
         conn = db_op.db_connect()
@@ -206,22 +207,16 @@ class RequestManager(object):
 
     def wait_for_complete(self):
         while len(self.page_workers):
-            
-            if not self.stop_flag[0]:
-
+            if not self.stop_flag[0]:   
                 page_worker = self.page_workers.pop()
-
                 page_worker.join()
-
                 if page_worker.is_alive() and not self.page_queue.empty():
                     self.page_workers.append(page_worker)
-
             else:
                 self.page_workers = []
                 break
                 
         while len(self.store_workers):
-            print "yyyyyy"
             if not self.stop_flag[0]:
                 store_worker = self.store_workers.pop()
                 store_worker.join()
