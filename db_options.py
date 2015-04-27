@@ -14,7 +14,6 @@ def db_close(conn):
 def db_store_request(conn, info):
     cursor = conn.cursor()
     write_sql = '''insert into requests(root, method, _date, md5, url, keys_values, sql_injection) values("%s", "%s", "%s", "%s", "%s", "%s", 0)''' % info
-    print write_sql    
     cursor.execute(write_sql)
     conn.commit()
     cursor.close()
@@ -23,7 +22,6 @@ def db_check_md5(conn, md5):
     cursor = conn.cursor()
     read_sql = "select * from requests where md5='%s'" % md5
     cursor.execute(read_sql)
-    print cursor.fetchone()
     if cursor.fetchone():
         cursor.close()
         return 1
@@ -42,7 +40,7 @@ def db_get_sql_injection_url(conn):
 
 def db_get_count(conn):
     cursor = conn.cursor()
-    read_sql = "select * from requests"
+    read_sql = "select count(*) from requests"
     cursor.execute(read_sql)
     info = cursor.fetchone()
     return info[0]

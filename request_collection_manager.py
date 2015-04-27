@@ -39,7 +39,8 @@ class PageWorker(threading.Thread):
                     res = callback(self.getName(), args)
                     self._deal_info(res)
                 except Queue.Empty:
-                    print "".join([self.getName(),":no task\n"])
+                    pass
+                    # print "".join([self.getName(),":no task\n"])
                 except:
                     print "thread %s had some error: %s"  % (self.getName(), sys.exc_info())
             else:
@@ -88,28 +89,26 @@ class PageWorker(threading.Thread):
 
                 if not (link.endswith(".js") or link.endswith(".css")):
                     conn = db_op.db_connect()
-                    print para_str
                     if para_str.find("&") != -1:
                         para_list = para_str.split("&") 
                         for para_item in para_list:
                             if para_item.find("=") != -1:
                                 arg1 = tuple(para_item.split("="))
                                 paras.append(arg1)
-                        print paras
                         if paras:
                             m = md5.new()
                             m.update(link+str(paras))
                             md5_string = m.hexdigest()
                             if not db_op.db_check_md5(conn, md5_string):
                                 COUNT += 1
-                                print COUNT
+                                # print COUNT
                                 para_s = pkl.dumps(paras)
                                 argument = (self.root_url[0], "GET", time.strftime(ISOTIMEFORMAT, time.localtime()), md5_string, link, para_s)
-                                print md5_string
-                                print "stored into database"
+                                # print md5_string
                                 self.store_queue.put((request_store, argument))
                             else:
-                                print "old url"
+                                pass
+                                # print "old url"
                     else:
                         if para_str.find("=") != -1:
                             paras.append(tuple(para_str.split("=")))
@@ -118,20 +117,23 @@ class PageWorker(threading.Thread):
                             md5_string = m.hexdigest()
                             if not db_op.db_check_md5(conn, md5_string):
                                 COUNT += 1
-                                print COUNT
+                                # print COUNT
                                 para_s = pkl.dumps(paras)
                                 argument = (self.root_url[0], "GET", time.strftime(ISOTIMEFORMAT, time.localtime()), md5_string, link, para_s)
-                                print md5_string
+                                # print md5_string
                                 
                                 self.store_queue.put((request_store, argument))
                             else:
-                                print "old url"
+                                pass
+                                # print "old url"
                     db_op.db_close(conn)
-                    print "---------------"
+                    # print "---------------"
                 else:
-                    print "js or css resource"
+                    pass
+                    # print "js or css resource"
             else:
-                print "other website link"
+                pass
+                # print "other website link"
         else:
             if not (link.endswith(".js") or link.endswith(".css")):
                 self.page_queue.put((deal_page, link))
@@ -156,9 +158,11 @@ class StoreWorker(threading.Thread):
                 try:
                     callback, args = self.store_queue.get(timeout = self.time_out)
                     callback(self.getName(), args)
-                    print "stored into database"
+                    # print "stored into database"
+                    self._is_stop()
                 except Queue.Empty:
-                    print "".join([self.getName(),":no task\n"])
+                    pass
+                    # print "".join([self.getName(),":no task\n"])
                 except:
                     print "thread %s had some error: %s" % (self.getName(), sys.exc_info()[:2])
             else:
@@ -167,6 +171,7 @@ class StoreWorker(threading.Thread):
     def _is_stop(self):
         conn = db_op.db_connect()
         count = db_op.db_get_count(conn)
+        print "count:" + str(count)
         if count > self.request_num:
             self.stop_flag[0] = True
         db_op.db_close(conn)
@@ -196,22 +201,27 @@ class RequestManager(object):
             self.store_workers.append(store_worker)
 
     def add_job(self, callback, *args):
-        print args
         self.root_url.append(args[0])
         self.page_queue.put((callback, args))
 
     def wait_for_complete(self):
         while len(self.page_workers):
+            
             if not self.stop_flag[0]:
+
                 page_worker = self.page_workers.pop()
+
                 page_worker.join()
+
                 if page_worker.is_alive() and not self.page_queue.empty():
                     self.page_workers.append(page_worker)
+
             else:
                 self.page_workers = []
                 break
                 
         while len(self.store_workers):
+            print "yyyyyy"
             if not self.stop_flag[0]:
                 store_worker = self.store_workers.pop()
                 store_worker.join()
