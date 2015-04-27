@@ -2,18 +2,20 @@
 #-*- coding:utf-8 -*-
 
 #standard
-import subprocess
+# import subprocess
+import commands
 import sys
 #custom lib
 import db_options as db_op
 
 
 def deal_page(thread_name, link):
+    # print thread_name + " is alive!"
     if isinstance(link, tuple):
         link = link[0]
     casperjs_para = "".join(["--root_url=",link])
-    proc = subprocess.Popen(["casperjs", "tencent.js", casperjs_para], stdout=subprocess.PIPE)
-    return proc.communicate()[0]
+    msg = commands.getstatusoutput("".join(["casperjs tencent.js " ,casperjs_para]))
+    return msg[1]
 
 def request_store(thread_name, info):
     conn = db_op.db_connect()

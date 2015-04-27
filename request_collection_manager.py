@@ -38,11 +38,10 @@ class PageWorker(threading.Thread):
                     callback, args = self.page_queue.get(timeout = self.time_out)
                     res = callback(self.getName(), args)
                     self._deal_info(res)
-                    self._is_stop()
                 except Queue.Empty:
                     print "".join([self.getName(),":no task\n"])
                 except:
-                    print "thread %d had some error: %s" % (self._id, sys.exc_info()[:2])
+                    print "thread %s had some error: %s"  % (self.getName(), sys.exc_info())
             else:
                 pass #TODO
 
@@ -67,8 +66,6 @@ class PageWorker(threading.Thread):
     def _check_same_domain_name(self, url1, url2):
         if url1[0].split('/')[2].split('.')[-1] == url2.split('/')[2].split('.')[-1] and\
             url1[0].split('/')[2].split('.')[-2] == url2.split('/')[2].split('.')[-2]:
-            print url1[0]
-            print url2
             return 1
         else:
             return 0
@@ -76,7 +73,7 @@ class PageWorker(threading.Thread):
     def _deal_get_request(self, item):
         global COUNT
         link = ""
-        arg0 = item.split(": ")                
+        arg0 = item.split(": ")
         if len(arg0) == 2 and arg0[1].startswith("http"):
             link = arg0[1]
         if link and link.find("?") != -1:
@@ -88,14 +85,17 @@ class PageWorker(threading.Thread):
                 para_str = "".join(list(link_tuple[1:]))
             paras = []
             if self._check_same_domain_name(self.root_url, link):
+
                 if not (link.endswith(".js") or link.endswith(".css")):
                     conn = db_op.db_connect()
+                    print para_str
                     if para_str.find("&") != -1:
-                        para_list = para_str.split("&")
+                        para_list = para_str.split("&") 
                         for para_item in para_list:
                             if para_item.find("=") != -1:
                                 arg1 = tuple(para_item.split("="))
                                 paras.append(arg1)
+                        print paras
                         if paras:
                             m = md5.new()
                             m.update(link+str(paras))
@@ -122,12 +122,14 @@ class PageWorker(threading.Thread):
                                 para_s = pkl.dumps(paras)
                                 argument = (self.root_url[0], "GET", time.strftime(ISOTIMEFORMAT, time.localtime()), md5_string, link, para_s)
                                 print md5_string
-                                print "stored into database"
+                                
                                 self.store_queue.put((request_store, argument))
                             else:
                                 print "old url"
                     db_op.db_close(conn)
                     print "---------------"
+                else:
+                    print "js or css resource"
             else:
                 print "other website link"
         else:
@@ -137,8 +139,8 @@ class PageWorker(threading.Thread):
 class StoreWorker(threading.Thread):
     worker_count = 0
     def __init__(self, store_queue, root_url, request_num, stop_flag, time_out=5):
-        PageWorker.worker_count += 1
-        self._id = PageWorker.worker_count
+        StoreWorker.worker_count += 1
+        self._id = StoreWorker.worker_count
         threading.Thread.__init__(self,name="store_worker_%d" % self._id)
         self.store_queue = store_queue
         self.root_url = root_url
@@ -150,14 +152,15 @@ class StoreWorker(threading.Thread):
 
     def run(self):
         while True:
-            if self.stop_flag[0]:
+            if not self.stop_flag[0]:
                 try:
                     callback, args = self.store_queue.get(timeout = self.time_out)
                     callback(self.getName(), args)
+                    print "stored into database"
                 except Queue.Empty:
                     print "".join([self.getName(),":no task\n"])
                 except:
-                    print "thread %d had some error: %s" % (self._id, sys.exc_info()[:2])
+                    print "thread %s had some error: %s" % (self.getName(), sys.exc_info()[:2])
             else:
                 pass #TODO
 
@@ -178,6 +181,7 @@ class RequestManager(object):
         self.page_workers = []
         self.store_workers = []
         self.worker_num = worker_num
+        self.request_num = request_num
         self.root_url = []
         self.stop_flag = [False,]
         self._recruit_threads()
@@ -204,7 +208,7 @@ class RequestManager(object):
                 if page_worker.is_alive() and not self.page_queue.empty():
                     self.page_workers.append(page_worker)
             else:
-                self.page_worker = []
+                self.page_workers = []
                 break
                 
         while len(self.store_workers):
@@ -214,7 +218,7 @@ class RequestManager(object):
                 if store_worker.is_alive() and not self.store_queue.empty():
                     self.store_workers.append(store_worker)
             else:
-                self.page_worker = []
+                self.store_workers = []
                 break            
 
 if __name__ == "__main__":
