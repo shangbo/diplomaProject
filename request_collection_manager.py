@@ -140,7 +140,7 @@ class PageWorker(threading.Thread):
 
 class StoreWorker(threading.Thread):
     worker_count = 0
-    def __init__(self, store_queue, root_url, request_num, stop_flag, time_out=5):
+    def __init__(self, username , store_queue, root_url, request_num, stop_flag, time_out=5):
         StoreWorker.worker_count += 1
         self._id = StoreWorker.worker_count
         threading.Thread.__init__(self,name="store_worker_%d" % self._id)
@@ -149,6 +149,7 @@ class StoreWorker(threading.Thread):
         self.time_out = time_out
         self.stop_flag = stop_flag
         self.request_num = request_num
+        self.username = username
         self.setDaemon(True)
         self.start()
 
@@ -156,7 +157,7 @@ class StoreWorker(threading.Thread):
         while not self.stop_flag[0]:
             try:
                 callback, args = self.store_queue.get(timeout = self.time_out)
-                callback(self.getName(), args)
+                callback(self.getName(),self.username, args)
                 # print "stored into database"
                 self._is_stop()
             except Queue.Empty:
@@ -171,17 +172,18 @@ class StoreWorker(threading.Thread):
 
     def _is_stop(self):
         conn = db_op.db_connect()
-        count = db_op.db_get_count(conn)
+        count = db_op.db_get_count(conn, self.root_url, self.username)
         print "count:" + str(count)
         if count > self.request_num:
             self.stop_flag[0] = True
+            db_op.db_update_scan_status(conn, 2)
         db_op.db_close(conn)
 
 class RequestManager(object):
     """ 
         TODO
     """
-    def __init__(self, worker_num, request_num):
+    def __init__(self, username, worker_num, request_num):
         self.page_queue = Queue.Queue()
         self.store_queue = Queue.Queue()
         self.page_workers = []
@@ -189,6 +191,7 @@ class RequestManager(object):
         self.worker_num = worker_num
         self.request_num = request_num
         self.root_url = []
+        self.username = username
         self.stop_flag = [False,]
         self._recruit_threads()
         
@@ -198,11 +201,14 @@ class RequestManager(object):
             page_worker = PageWorker(self.page_queue, self.store_queue, self.root_url, self.request_num, self.stop_flag)
             self.page_workers.append(page_worker)
         for i in range(self.worker_num):
-            store_worker = StoreWorker(self.store_queue, self.root_url, self.request_num, self.stop_flag)
+            store_worker = StoreWorker(self.username, self.store_queue, self.root_url, self.request_num, self.stop_flag)
             self.store_workers.append(store_worker)
 
     def add_job(self, callback, *args):
         self.root_url.append(args[0])
+        conn = db_op.db_connect()   
+        db_op.db_update_scan_status(conn, 1)
+        db_op.db_close(conn)
         self.page_queue.put((callback, args))
 
     def wait_for_complete(self):
@@ -224,7 +230,8 @@ class RequestManager(object):
                     self.store_workers.append(store_worker)
             else:
                 self.store_workers = []
-                break            
+                break
+
 
 if __name__ == "__main__":
     try:
@@ -250,7 +257,7 @@ if __name__ == "__main__":
                 thread_number = int(opt[1])
 
     if get_url:
-        tp = RequestManager(worker_num=thread_number, request_num=request_number)
+        tp = RequestManager("loftysoul", worker_num=thread_number, request_num=request_number)
         tp.add_job(deal_page, root_url)
         tp.wait_for_complete()
     else:

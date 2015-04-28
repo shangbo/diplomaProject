@@ -17,8 +17,12 @@ def deal_page(thread_name, link):
     msg = commands.getstatusoutput("".join(["casperjs tencent.js " ,casperjs_para]))
     return msg[1]
 
-def request_store(thread_name, info):
+def request_store(thread_name, username, info):
     conn = db_op.db_connect()
+    request_info = [username, ]
+    for i in info:
+        request_info.append(i)
+    info = tuple(request_info)
     db_op.db_store_request(conn, info)
     db_op.db_close(conn)
     return 1

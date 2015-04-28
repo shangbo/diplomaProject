@@ -10,6 +10,7 @@
   <meta http-equiv="Cache-Control" content="no-siteapp" />
   <link rel="stylesheet" href="static/css/amazeui.min.css"/>
   <link rel="stylesheet" href="static/css/app.css">
+  <link rel="stylesheet" href="static/css/index.css">
   <style>
     .header {
       text-align: center;
@@ -25,6 +26,12 @@
   </style>
 </head>
 <body>
+<ul class="am-nav am-nav-pills am-nav-justify">
+  <li class="am-active"><a href="#">Submit Window</a></li>
+  <li><a href="#">Modified Personal Infomation</a></li>
+  <li><a href="#">Process Query</a></li>
+  <li><a href="#">Submit History</a></li>
+</ul>
 <div class="header">
   <div class="am-g">
     <h1>Task Submit Page</h1>
@@ -37,32 +44,62 @@
     <hr>
 
     <form id="submit_form" method="post" action="/submit_form.html" class="am-form">
-    <div class="am-form-group">
-      <label class="am-form-label" for="url_string">Root Url:</label>
-      <input class="am-form-field am-round" id="url_string" type="url" name="url_string"  value="" placeholder="Input your url" required/>
-    </div>
-      <br>
-    <div class="am-form-group">
-      <label class="am-form-label" for="email_string">Email:</label>
-      <input class="am-form-field am-round" id="email_string" type="email" name="email_string"  placeholder="Input your email" value="" required/>
-    </div>
-    <div class="am-form-group">
-      <label class="am-form-label" for="request_num">Request Number:</label>
-      <input class="am-form-field am-round" id="request_num" type="text" name="request_num"  placeholder="request number" value=""/>
-    </div>
-    <div class="am-form-group">
-      <label class="am-form-label" for="thread_num">Thread Number:</label>
-      <input class="am-form-field am-round" id="thread_num" type="text" name="thread_num" placeholder="request number" value=""/>
-    </div>
-      <br>
-      <br />
-      <div class="am-cf">
-        <input type="submit" name="" value="Submit" class="am-btn am-btn-primary am-btn-sm am-fl am-round">
-        <input type="reset" name="" value="Reset" class="am-btn am-btn-default am-btn-sm am-fr am-round">
+      <div class="am-form-group">
+        <label class="am-form-label" for="url_string">Root Url:</label>
+        <input class="am-form-field am-round" id="url_string" type="url" name="url_string"  value="" placeholder="Input your url" required/>
       </div>
+      <!-- <div class="am-form-group">
+        <label class="am-form-label" for="email_string">Email:</label>
+        <input class="am-form-field am-round" id="email_string" type="email" name="email_string"  placeholder="Input your email" value="" required/>
+      </div> -->
+      <div class="am-form-group">
+        <label class="am-form-label" for="request_num">Request Number:</label>
+        <input class="am-form-field am-round" id="request_num" type="text" name="request_num"  placeholder="request number" value=""/>
+      </div>
+      <div class="am-form-group">
+        <label class="am-form-label" for="thread_num">Thread Number:</label>
+        <input class="am-form-field am-round" id="thread_num" type="text" name="thread_num" placeholder="request number" value=""/>
+      </div>
+      <div class="am-form-group">
+        <label class="am-form-label">Vulnerability Type:</label>
+        <br>
+        <input type="checkbox" name="xss" value="xss1"> XSS
+        <input type="checkbox" name="sql" value="sql"> SQL Injection
+        <input type="checkbox" name="cms" value="cms"> CMS Detect
+      </div>
+        <div class="am-cf">
+          <input type="button" name="" value="Submit" id="submit_btn" class="am-btn am-btn-primary am-btn-sm am-fl am-round">
+          <input type="reset" name="" value="Reset" class="am-btn am-btn-default am-btn-sm am-fr am-round">
+        </div>
     </form>
     <hr>
   </div>
 </div>
+
+<div id="confirm_submit" class="am-modal am-modal-prompt" tabindex="-1" id="my-prompt">
+  <div class="am-modal-dialog">
+    <div class="am-modal-hd">检测到你之前扫描过该网站，是否重新扫描?重新扫描之前的扫描数据将会丢失！</div>
+    <div class="am-modal-footer">
+      <button class="am-modal-btn" data-am-modal-cancel>取消</span>
+      <button id="confirm_go" class="am-modal-btn" data-am-modal-confirm>确认</span>
+    </div>
+  </div>
+</div>
+<div  id="success_alert" class="am-alert am-alert-success" data-am-alert>
+  <button type="button" class="am-close">&times;</button>
+  <p>没什么可给你，但求凭这阙歌。谢谢你风雨里，都不退愿陪着我。</p>
+</div>
+<div  id="failed_alert" class="am-alert am-alert-danger" data-am-alert>
+  <button type="button" class="am-close">&times;</button>
+  <p>没什么可给你，但求凭这阙歌。谢谢你风雨里，都不退愿陪着我。</p>
+</div>
+<div  id="cancel_alert" class="am-alert am-alert-secondary" data-am-alert>
+  <button type="button" class="am-close">&times;</button>
+  <p>没什么可给你，但求凭这阙歌。谢谢你风雨里，都不退愿陪着我。</p>
+</div>
+<script src="static/js/jquery.min.js"></script>
+<script src="static/js/amazeui.min.js"></script>
+<script src="static/js/app.js"></script>
+<script src="static/js/index.js"></script>
 </body>
 </html>
