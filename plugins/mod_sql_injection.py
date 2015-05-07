@@ -5,12 +5,12 @@
 import subprocess
 import cPickle as pkl
 
-#custom lib
+# custom lib
 import db_options as db
 
 
 def get_url(item):
-    paras =  pkl.loads(item[5].encode("utf-8"))
+    paras = pkl.loads(item[5].encode("utf-8"))
     data = {}
     if item[3] == "GET":
         url = _concat_url(item[4], paras)
@@ -18,7 +18,7 @@ def get_url(item):
         url = item[4]
         data = paras
     return (url, data)
-    
+
 
 def _concat_url(url, paras):
     url_string = url + "?"
@@ -27,16 +27,19 @@ def _concat_url(url, paras):
     url_string = url_string[:-1]
     return url_string
 
+
 def execute_sqlmap(item):
     url, data = get_url(item)
     if data:
         pass
-        #TODO POST
+        # TODO POST
     else:
         url = '"' + url + '"'
         print url
-        proc = subprocess.Popen(["/opt/sqlmap/sqlmap.py", '-u', url], stdout=subprocess.PIPE)
+        proc = subprocess.Popen(
+            ["/opt/sqlmap/sqlmap.py", '-u', url], stdout=subprocess.PIPE)
         print proc.communicate()[0]
+
 
 def main():
     conn = db.db_connect()

@@ -13,7 +13,7 @@ def db_close(conn):
 
 def db_store_request(conn, info):
     cursor = conn.cursor()
-    write_sql = '''insert into requests(username, root, method, _date, md5, url, keys_values, sql_injection) values("%s", "%s", "%s", "%s", "%s", "%s", "%s", 0)''' % info
+    write_sql = '''insert into requests(username, root, method, _date, md5, url, keys_values) values("%s", "%s", "%s", "%s", "%s", "%s", "%s")''' % info
     cursor.execute(write_sql)
     conn.commit()
     cursor.close()
@@ -31,7 +31,7 @@ def db_check_md5(conn, md5):
 
 def db_get_sql_injection_url(conn):
     cursor = conn.cursor()
-    read_sql =  ''' select * from requests where sql_injection = 0'''
+    read_sql =  ''' select * from requests where sql_injection_status = 0'''
     cursor.execute(read_sql)
     info = cursor.fetchall()
     cursor.close()
@@ -40,7 +40,6 @@ def db_get_sql_injection_url(conn):
 
 def db_get_count(conn, root_url, username):
     cursor = conn.cursor()
-    root = ""
     if isinstance(root_url, list):
         root_url = root_url[0]
     read_sql = "select count(*) from requests where username='%s' and root='%s'" % (username, root_url)
@@ -60,8 +59,8 @@ def db_check_login(conn, username, password):
 def db_store_scan_info(conn, scan_info):
     cursor = conn.cursor()
     write_sql = '''
-    insert into user_scan_record(username, root, request_num, thread_num, connection_status, scan_status, sql_status, xss_status, cms_status, start_time) 
-    values('%s','%s', %d, %d, %d, 0, %d, %d, %d, '%s') 
+    insert into user_scan_record(username, root, request_num, thread_num, connection_status, check_types, start_time) 
+    values('%s','%s', %d, %d, %d, '%s', '%s') 
     ''' % scan_info
     cursor.execute(write_sql)
     conn.commit()
@@ -73,3 +72,111 @@ def db_update_scan_status(conn, status):
     cursor.execute(update_sql)
     conn.commit()
     cursor.close()    
+
+def db_move_to_history(conn, username, root):
+    cursor = conn.cursor()
+    read_sql = '''select * from user_scan_record where username='%s' and root='%s' ''' % (username, root)
+    cursor.execute(read_sql)
+    info = cursor.fetchone()
+    if info:
+        check_types = info[7][:-1]
+        info = list(info)[1:9]
+        read_sql = '''select %s from user_scan_record where username='%s' and root='%s' ''' % (check_types, username, root)
+        cursor.execute(read_sql)
+        status = cursor.fetchone()
+        info.extend(list(status))
+        tmp_str = ""
+        for i in check_types[:-1].split(','):
+            tmp_str += ',%d'
+        if info:
+            write_sql_before = '''insert into scan_history(username, root, request_num, thread_num, connection_status, scan_status, check_types, start_time, end_time,%s)''' % check_types
+            write_sql_after = ''' values('%s','%s', %d, %d, %d, %d''' + ''' ,'%s' ,'%s', 'xxxx' ''' + tmp_str + ')'
+            write_sql_after = write_sql_after % tuple(info)
+            write_sql =  write_sql_before + write_sql_after
+            cursor.execute(write_sql)
+            conn.commit()
+            delete_sql = ''' delete from user_scan_record where username='%s' and root='%s' ''' % (username, root)
+            cursor.execute(delete_sql)
+            conn.commit()
+    cursor.close()
+
+
+def db_clear_repeat_scan(conn,username, root_url):
+    cursor = conn.cursor()
+    delete_sql = '''delete from requests where username="%s" and root="%s"''' % (username, root_url)
+    cursor.execute(delete_sql)
+    conn.commit()
+    cursor.close()        
+
+def db_get_user_roots(conn, username):
+    cursor = conn.cursor()
+    read_sql =  ''' select root from user_scan_record where username='%s' '''  % username
+    cursor.execute(read_sql)
+    urls = cursor.fetchall()
+    cursor.close()
+    return urls
+
+def db_get_url_status(conn, username, root, needed_type):
+    cursor = conn.cursor()
+    read_sql = '''select url from requests where username='%s' and root='%s' and %s=1''' % (username, root, needed_type)
+    print read_sql
+    cursor.execute(read_sql)
+    info = cursor.fetchall()
+    print info
+    cursor.close()
+    return info
+
+def db_modify_table_structure(conn, field_name):
+    cursor = conn.cursor()
+    read_sql =  ''' desc user_scan_record;'''
+    cursor.execute(read_sql)
+    info = cursor.fetchall()
+    for i in info:
+        if i[0] == field_name:
+            return 1
+        else:
+            continue
+    modified_sql = 'alter table user_scan_record add %s int(1) default 0' % field_name
+    cursor.execute(modified_sql)
+    conn.commit()
+    
+    read_sql =  ''' desc scan_history;'''
+    cursor.execute(read_sql)
+    info = cursor.fetchall()
+    for i in info:
+        if i[0] == field_name:
+            return 1
+        else:
+            continue
+    modified_sql = 'alter table scan_history add %s int(1) default 0' % field_name
+    cursor.execute(modified_sql)
+    conn.commit()
+
+    read_sql =  ''' desc requests;'''
+    cursor.execute(read_sql)
+    info = cursor.fetchall()
+    for i in info:
+        if i[0] == field_name:
+            return 1
+        else:
+            continue
+    modified_sql = 'alter table requests add %s int(1) default 0' % field_name
+    cursor.execute(modified_sql)
+    conn.commit()
+    cursor.close()
+
+def db_get_check_types(conn, username, root_url):
+    cursor = conn.cursor()
+    read_sql =  ''' select check_types from user_scan_record where username='%s' and root='%s' '''  % (username, root_url)
+    cursor.execute(read_sql)
+    info = cursor.fetchone()
+    cursor.close()
+    return info
+
+def db_get_requests(conn, username, root_url):
+    cursor = conn.cursor()
+    read_sql =  ''' select url from requests where username='%s' and root='%s' '''  % (username, root_url)
+    cursor.execute(read_sql)
+    info = cursor.fetchall()
+    cursor.close()
+    return info    

@@ -13,6 +13,7 @@ import getopt
 #custom lib
 import db_options as db_op
 from util_functions import deal_page, request_store, usage
+from thread_pool import ThreadPool
 COUNT = 0
 ISOTIMEFORMAT = '%Y-%m-%d %X'
 
@@ -206,9 +207,6 @@ class RequestManager(object):
 
     def add_job(self, callback, *args):
         self.root_url.append(args[0])
-        conn = db_op.db_connect()   
-        db_op.db_update_scan_status(conn, 1)
-        db_op.db_close(conn)
         self.page_queue.put((callback, args))
 
     def wait_for_complete(self):
@@ -231,6 +229,8 @@ class RequestManager(object):
             else:
                 self.store_workers = []
                 break
+        del(self)
+        print "............................................"
 
 
 if __name__ == "__main__":

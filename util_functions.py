@@ -5,6 +5,7 @@
 # import subprocess
 import commands
 import sys
+import os
 #custom lib
 import db_options as db_op
 
@@ -29,3 +30,7 @@ def request_store(thread_name, username, info):
 
 def usage():
     print "Usage: %s [--root_url='url' --number='link_number'] " % sys.argv[0]
+
+def load_plugins_to_show():
+    plugins_name = os.listdir('./plugins') #hard Write
+    return plugins_name
