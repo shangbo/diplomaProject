@@ -2,51 +2,76 @@
 #-*- coding:utf-8 -*-
 
 # standard lib
-import subprocess
+import pexpect
 import cPickle as pkl
 
 # custom lib
 import db_options as db
+import util_functions as util
 
 
 def get_url(item):
-    paras = pkl.loads(item[5].encode("utf-8"))
+    paras = pkl.loads(item[6].encode("utf-8"))
     data = {}
-    if item[3] == "GET":
-        url = _concat_url(item[4], paras)
-    else:
-        url = item[4]
+    if item[4] == "GET":
+        url = util.concat_url(item[5], paras)
         data = paras
-    return (url, data)
+        return (url, data, 'GET')
+    else:
+        url = item[5]
+        data = paras
+        return (url, data, 'POST')
 
 
-def _concat_url(url, paras):
-    url_string = url + "?"
-    for item in paras:
-        url_string = url_string + item[0] + "=" + item[1] + "&"
-    url_string = url_string[:-1]
-    return url_string
+def run(thread_name, item):
+    url, data, method = get_url(item)
+    some_stuff = ["how do you want to proceed?", pexpect.EOF, pexpect.TIMEOUT, "Do you want to follow?"]
+    variable_count = [pexpect.EOF, pexpect.TIMEOUT, ]
+    stuff_map = {0: "c", 1: "", 2: "", 3: "n"}
+    url = '"' + url + '"'
+    end = False
+    injectable_point = []
+    for index, key in enumerate(data):
+        string = "'%s' might be injectable" % key[0]
+        some_stuff.append(string)
+        variable_count.append("parameter '%s'" % key[0])
+        stuff_map[index+4] = key[0]
 
-
-def execute_sqlmap(item):
-    url, data = get_url(item)
-    if data:
+    if method == "POST":
         pass
         # TODO POST
     else:
-        url = '"' + url + '"'
-        print url
-        proc = subprocess.Popen(
-            ["/opt/sqlmap/sqlmap.py", '-u', url], stdout=subprocess.PIPE)
-        print proc.communicate()[0]
+        s = "/home/reaper/software/sqlmapproject-sqlmap-1e7f2d6/sqlmap.py -u %s" % url
+        print s
+        command = pexpect.spawn(s)
+        count = 0
+        while True:
+            print "start:---------------------------------"
+            index = command.expect(variable_count, timeout=120)
+            print index
+            if index == 0:
+                pass
+            elif index == 1:
+                pass
+            else:
+                count += 1
+                if count == len(data):
+                    print "ddddddddddddd"
+                    end = True
+            print "end:---------------------------------"
 
+            index = command.expect(some_stuff, timeout=120)
+            if index == 0:
+                command.sendline(stuff_map[0])
+            elif index == 1 or index == 2:
+                return [0, ]  #TODO
+            elif index == 3:
+                command.sendline(stuff_map[3])
+            else:
+                injectable_point.append(stuff_map[key][0])
 
-def main():
-    conn = db.db_connect()
-    info = db.db_get_sql_injection_url(conn)
-    db.db_close(conn)
-    for item in info:
-        execute_sqlmap(item)
+            if end:
+                return [1, injectable_point, command.before + command.after]
 
 if __name__ == "__main__":
-    main()
+    run("test", "http://www.taobao.com/?id='dsaa'")

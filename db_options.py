@@ -173,10 +173,88 @@ def db_get_check_types(conn, username, root_url):
     cursor.close()
     return info
 
-def db_get_requests(conn, username, root_url):
+def db_get_requests_url(conn, username, root_url):
     cursor = conn.cursor()
-    read_sql =  ''' select url from requests where username='%s' and root='%s' '''  % (username, root_url)
+    read_sql =  ''' select url,keys_values from requests where username='%s' and root='%s' '''  % (username, root_url)
     cursor.execute(read_sql)
     info = cursor.fetchall()
     cursor.close()
-    return info    
+    return info 
+
+def db_get_all_requests(conn, username, root_url):
+    cursor = conn.cursor()
+    read_sql =  ''' select * from requests where username='%s' and root='%s' '''  % (username, root_url)
+    cursor.execute(read_sql)
+    info = cursor.fetchall()
+    cursor.close()
+    return info     
+
+def db_get_history_field(conn):
+    cursor = conn.cursor()
+    read_sql =  '''desc scan_history '''
+    cursor.execute(read_sql)
+    info = cursor.fetchall()
+    field = []
+    for i in info:
+        field.append(i[0])
+    cursor.close()
+    return field
+
+def db_get_history(conn, username):
+    cursor = conn.cursor()
+    read_sql =  '''select * from scan_history where username='%s' ''' % username
+    cursor.execute(read_sql)
+    info = cursor.fetchall()
+    cursor.close()
+    return info
+
+def db_user_get_email(conn, username):
+    cursor = conn.cursor()
+    read_sql =  '''select email from user_info where username='%s' ''' % username
+    cursor.execute(read_sql)
+    info = cursor.fetchone()
+    cursor.close()
+    return info[0]
+
+def db_match_pass(conn, old_pass, username):
+    cursor = conn.cursor()
+    read_sql =  '''select passwd from user_info where username='%s' ''' % username
+    cursor.execute(read_sql)
+    info = cursor.fetchone()
+    cursor.close()
+    if old_pass == info[0]:
+        return True
+    else:
+        return False
+
+def db_update_email(conn, email, username):
+    cursor = conn.cursor()
+    update_sql = '''update user_info set email='%s' ''' % email
+    result = cursor.execute(update_sql)
+    conn.commit()
+    cursor.close()
+    return result
+
+
+def db_update_pass(conn, new_pass, username):
+    cursor = conn.cursor()
+    update_sql = '''update user_info set passwd='%s' ''' % new_pass
+    result = cursor.execute(update_sql)
+    conn.commit()
+    cursor.close()
+    return result
+
+def db_add_user(conn, username, passwd, email):
+    cursor = conn.cursor()
+    read_sql = '''select * from user_info where username='%s' ''' % username
+    cursor.execute(read_sql)
+    info = cursor.fetchone()
+    if info:
+        return -1
+    else:
+        insert_sql = '''insert into user_info(username, passwd, email) values('%s', '%s', '%s')''' % (username, passwd, email)
+        result = cursor.execute(insert_sql)
+        conn.commit()
+        return result
+    cursor.close()
+    

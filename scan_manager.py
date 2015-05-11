@@ -8,6 +8,7 @@ import requests
 from request_collection_manager import RequestManager
 from util_functions import deal_page
 import db_options as do
+from plugins_manager import PluginsManager
 
 ISOTIMEFORMAT = '%Y-%m-%d %X'
 
@@ -51,16 +52,12 @@ class ScanManager(object):
     
         do.db_close(conn)
 
-    def _init_plugins(self):
-        from plugins_manager import plugins
-        for _type in self.check_types:
-            if _type in plugins:
-                plugin_mod = __import__(_type, fromlist=plugins)
-                mod_instance = getattr(plugin_mod, _type)()
-                self.plugin_instances.append(mod_instance)
+        
 
     def check_vun(self):
-        self._init_plugins()
+        pm = PluginsManager(self.thread_num, self.root_url, self.username, self.check_types)
+        
+
 
     def do_scan(self):
         if self.connection_status == 1:

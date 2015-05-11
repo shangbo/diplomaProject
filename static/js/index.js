@@ -80,6 +80,29 @@ $(document).ready(function() {
                 });
             });
         });
+        $.post('/get_history', {"0":"0"}, function(data, textStatus, xhr) {
+            if(data === "need login"){
+                alert(data);
+            }
+            else{
+                $("#table_body").html("");
+                for(var i=0;i<data['fields'].length;i++){
+                    $("#table_head").append("<th>" + data['fields'][i] + "</th>");
+                }
+                for(var i=0;i<data['history'].length;i++){
+                    var html = "<tr>";
+                    for(var j=0;j<data['history'][i].length;j++){
+                        html += "<td>"
+                        html += data['history'][i][j];
+                        html += "</td>"
+                    }
+                    html += "</tr>"
+                    console.log(html);
+                    $("#table_body").append(html);
+                    var html = "";
+                }
+            }
+        });
     });
     $("#ch_mod_personal_info").click(function(event) {
         $("#ch_submit_window").attr('class', '');
@@ -94,6 +117,51 @@ $(document).ready(function() {
                 });
             });
         });
+        $.post('/get_email', {"0":"0"}, function(data, textStatus, xhr) {
+            if(data !== "need login"){
+                $("#update_email").val("");
+                $("#update_password1").val("");    
+                if(data !== ""){
+                    $("#update_email").attr("placeholder","Current Email: " + data);
+                }
+                else{
+                    $("#update_email").attr("placeholder","Not Set Email");   
+                }
+            }
+        });
+        $("#change_user_info_btn").click(function(event) {
+            if($("#update_password1") === $("#update_password2")){
+                console.log('..');
+                $.ajax({
+                        cache: true,
+                        type: "POST",
+                        url: "/change_user_info",
+                        data:$('#change_user_info_form').serialize(),
+                        async: false,
+                        error: function(request) {
+                            // $("#failed_alert").alert();
+                        },
+                        success: function(data) {
+                            if(data === "-1"){
+                                alert("password incorrect");
+                            }
+                            else if(data === "2"){
+                                alert("nothing to change");
+                            }
+                            else if(data === "need login"){
+                                alert("need login");
+                            }
+                            else{
+                                alert("update success");   
+                            }
+                        }
+                });
+            }
+            else{
+                alert("password and repeat password not match!");
+            }
+        });
+        
     });
     $("#ch_process_query").click(function(event) {
         $("#ch_submit_window").attr('class', '');

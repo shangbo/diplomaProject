@@ -28,10 +28,11 @@
 <body>
 <ul class="am-nav am-nav-pills am-nav-justify">
   <li id="ch_submit_window" class="am-active"><a href="javascript:void(0);">Submit Window</a></li>
-  <li id="ch_mod_personal_info"><a href="javascript:void(0);">Modify Personal Infomation</a></li>
+  <li id="ch_mod_personal_info"><a href="javascript:void(0);">Update Personal Infomation</a></li>
   <li id="ch_process_query"><a href="javascript:void(0);">Process Query</a></li>
   <li id="ch_submit_history"><a href="javascript:void(0);">Submit History</a></li>
 </ul>
+<hr>
 <div id="submit_window">
   <div class="header">
     <div class="am-g">
@@ -90,10 +91,38 @@
 <div id="process_query">
 </div>
 <div id="mod_personal_info">
-  mod_personal_info
+  <div>
+    <form id="change_user_info_form" action="" class="am-form">
+      <fieldset>
+        <legend>Update Personal Info:</legend>
+        <div class="am-form-group">
+          <label for="update_email">Update Email:</label>
+          <input name="email" type="email" class="" id="update_email">
+        </div>
+        <div class="am-form-group">
+          <label for="update_password1">Update Password:</label>
+          <input name="old_pass" type="password" class="" id="update_password1" placeholder="old password">
+          <input name="new_pass" type="password" class="" id="update_password2" placeholder="New password">
+        </div>
+        <button id="change_user_info_btn" type="button" class="am-btn am-btn-success">Submit</button>
+        <button id="change_user_info_btn" type="reset" class="am-btn am-btn-danger">Reset</button>
+      </fieldset>
+    </form>
+  </div>
 </div>
 <div id="submit_history">
-  submit_history
+  <div class="am-scrollable-horizontal">
+    <table class="am-table am-table-bordered am-table-radius am-table-striped">
+      <thead>
+          <tr id="table_head">
+              
+          </tr>
+      </thead>
+      <tbody id="table_body">
+          
+      </tbody>
+    </table>
+  </div>
 </div>
 <script src="static/js/jquery.min.js"></script>
 <script src="static/js/amazeui.min.js"></script>

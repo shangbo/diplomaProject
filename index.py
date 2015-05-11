@@ -6,13 +6,13 @@ from flask import Flask, render_template, request, session, jsonify
 
 #standard lib
 import os
-
+import cPickle as pkl
 
 # custom lib
 import db_options as do
 from scan_manager import ScanManager
-from util_functions import load_plugins_to_show
-
+from plugins_manager import load_plugins
+import util_functions as util
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
 
@@ -32,10 +32,7 @@ def index():
         info = do.db_check_login(conn, username, password)
         if info[0] == 1:
             session['username'] = username
-            pre_plugins = load_plugins_to_show()
-            plugins = []
-            for p in pre_plugins:
-                plugins.append(p[:-3])
+            plugins = load_plugins()
             return render_template("submit_page.html",plugins=plugins)
         elif info[0] == 0:
             return "login failed"
@@ -126,16 +123,101 @@ def get_status_info():
             end_i = pre_needed_type.find('_second_panel')
             needed_type = pre_needed_type[start_i:end_i]
             if needed_type == 'Scan':
-                info = do.db_get_requests(conn, username, root)
+                info = []
+                pre_info = do.db_get_requests_url(conn, username, root)
+                for url, paras in pre_info:
+                    paras = pkl.loads(paras.encode("utf-8"))
+                    deal_info = util.concat_url(url, paras)
+                    info.append((deal_info,))
             else:
                 info = do.db_get_url_status(conn, username, root, needed_type)
             result = []
             for i in info:
                 result.append(i[0])
-            print result
             return jsonify({"result":result})
         else:
             return "need login"
+
+@app.route("/get_history", methods=["post"])
+def get_history():
+    if request.method == "POST":
+        username = ""
+        if 'username' in session:
+            username = session['username']
+            conn = do.db_connect()
+            fields = do.db_get_history_field(conn)
+            history = do.db_get_history(conn, username)
+            do.db_close(conn)
+            return jsonify({"fields": fields, "history": history})
+        else:
+            return "need login"
+        
+@app.route("/get_email", methods=["post"])
+def get_email():
+    if request.method == "POST":
+        username = ""
+        if 'username' in session:
+            username = session['username']
+            conn = do.db_connect()
+            email = do.db_user_get_email(conn, username)
+            do.db_close(conn)
+            return email
+        else:
+            return "need login"
+
+@app.route("/change_user_info", methods=['post'])
+def change_user_info():
+    if request.method == "POST":
+        username = ""
+        results = {}
+        if 'username' in session:
+            username = session['username']
+            conn = do.db_connect()
+            field_check = 0
+            if request.form['old_pass']:
+                old_pass = request.form['old_pass']
+                result = do.db_match_pass(conn, old_pass ,username)
+                if result == False:
+                    return "-1"
+            else:
+                field_check += 1
+            if request.form['email']:
+                email = request.form['email']
+                result = do.db_update_email(conn, email ,username)
+                if result == 1:
+                    results['email'] = "1"
+                else:
+                    results['email'] = "0"
+            else:
+                field_check += 1
+            if request.form['new_pass']:
+                new_pass = request.form['new_pass']
+                result = do.db_update_pass(conn, new_pass ,username)
+                if result == 1:
+                    results['pass'] = "1"
+                else:
+                    results['pass'] = "0"
+            else:
+                field_check += 1
+            if field_check == 3:
+                return "2"
+            return jsonify(results)
+        else:
+            return "need login"
+
+@app.route("/register_form", methods=["post"])
+def register():
+    if request.method == "POST":
+        username = request.form['register_username']
+        passwd = request.form['register_password']
+        email = request.form['register_email']
+        if username and passwd and email:
+            conn = do.db_connect()
+            result = do.db_add_user(conn, username, passwd, email)
+            return result
+        else:
+            return "-1"
+        
 
 if __name__ == "__main__":
     app.run(debug=True,port=5000)
