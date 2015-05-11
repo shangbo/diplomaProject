@@ -13,7 +13,6 @@ import getopt
 #custom lib
 import db_options as db_op
 from util_functions import deal_page, request_store, usage
-from thread_pool import ThreadPool
 COUNT = 0
 ISOTIMEFORMAT = '%Y-%m-%d %X'
 
