@@ -24,15 +24,15 @@ class ScanManager(object):
         self.plugin_instances = []
         self.username = username
         self.connection_status = self._pre_scan()
-        if self.connection_status == 1:
+        if self.connection_status == 2:
             self._store_scan_info()
 
     def _pre_scan(self):
 
         res = requests.get(self.root_url)
         if res.status_code == 200:
-            self.connection_status = 1
-            return 1
+            self.connection_status = 2
+            return 2
         else:
             self.connection_status = -1
             return -1

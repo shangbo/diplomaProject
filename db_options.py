@@ -118,11 +118,9 @@ def db_get_user_roots(conn, username):
 
 def db_get_url_status(conn, username, root, needed_type):
     cursor = conn.cursor()
-    read_sql = '''select url from requests where username='%s' and root='%s' and %s=1''' % (username, root, needed_type)
-    print read_sql
+    read_sql = '''select url, keys_values, %s from requests where username='%s' and root='%s' and %s!=0''' % (needed_type, username, root, needed_type)
     cursor.execute(read_sql)
-    info = cursor.fetchall()
-    print info
+    info = cursor.fetchone()
     cursor.close()
     return info
 
@@ -173,11 +171,11 @@ def db_get_check_types(conn, username, root_url):
     cursor.close()
     return info
 
-def db_get_requests_url(conn, username, root_url):
+def db_get_requests_url(conn, username, root_url, count):
     cursor = conn.cursor()
-    read_sql =  ''' select url,keys_values from requests where username='%s' and root='%s' '''  % (username, root_url)
+    read_sql =  ''' select url,keys_values from requests where username='%s' and root='%s' limit %d,1 '''  % (username, root_url, count)
     cursor.execute(read_sql)
-    info = cursor.fetchall()
+    info = cursor.fetchone()
     cursor.close()
     return info 
 
@@ -258,3 +256,13 @@ def db_add_user(conn, username, passwd, email):
         return result
     cursor.close()
     
+def db_get_all_status(conn, username, url):
+    cursor = conn.cursor()
+    read_sql = '''select check_types from user_scan_record where username='%s' and root='%s' ''' % (username, url)
+    cursor.execute(read_sql)
+    pre_check_types = cursor.fetchone()
+    read_sql = '''select scan_status, connection_status, %s from user_scan_record where username='%s' and root='%s' ''' % (pre_check_types[0][:-1], username, url)
+    cursor.execute(read_sql)
+    values = cursor.fetchone()
+    keys = "scan, connection_status," + pre_check_types[0][:-1]
+    return keys, values

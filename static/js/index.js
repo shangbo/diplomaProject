@@ -163,7 +163,10 @@ $(document).ready(function() {
         });
         
     });
+
     $("#ch_process_query").click(function(event) {
+
+        //socket.on("get_total_status",{url: })
         $("#ch_submit_window").attr('class', '');
         $("#ch_submit_history").attr("class", '');
         $("#ch_mod_personal_info").attr("class", '');
@@ -176,7 +179,12 @@ $(document).ready(function() {
                 });
             });
         });
+
         $.post('/get_process_info', {}, function(data, textStatus, xhr) {
+            var socket = io.connect("http://" + document.domain + ':' + location.port);
+            socket.on("connect", function() {
+                socket.emit('get_all_status');
+            });
             $("#process_query").html("");
             var count = 0;
             var url_div = '<div class="am-panel-group" id="accordion_primary"></div>';
@@ -211,14 +219,14 @@ $(document).ready(function() {
                     div6.append(div7);
                     var div8 = $('<div class="am-panel-hd"></div>');
                     div7.append(div8);
-                    var url_h4 = "<h4 class='am-panel-title  get_info_class' data-am-collapse=\"{parent: '#accordion_second_" + url_count + "', target: '#" + check_type[j] + "_second_content_" + count.toString() + "'}\"></h4>"
+                    var url_h4 = "<h5 class='am-panel-title  get_info_class' data-am-collapse=\"{parent: '#accordion_second_" + url_count + "', target: '#" + check_type[j] + "_second_content_" + count.toString() + "'}\"></h5>"
                     var h4 = $(url_h4);
                     h4.text(check_type[j].replace(/_/gm,' ')); //amazing!
                     div8.append(h4);
                     var url_div9 = '<div id="' + check_type[j] + "_second_content_" + count.toString() + '" class="am-panel-collapse am-collapse am-in"></div>';
                     var div9 = $(url_div9);
                     div7.append(div9);
-                    url_div10 = '<div class="am-panel-bd">waiting....</div>';
+                    url_div10 = '<div class="am-panel-bd"></div>';
                     div10 = $(url_div10);
                     div9.append(div10);
                     div9.collapse('close');
@@ -230,23 +238,95 @@ $(document).ready(function() {
                 var type_info = type_info_ele.attr('id');
                 var url_info = type_info_ele.parent().parent().parent().siblings("div").children().text();
                 var judge_conditon = ($(e.target).attr('class') === "am-panel-title  get_info_class am-collapsed");
+                var count = 0;
                 if(judge_conditon){
-                    $.post('/get_status_info', {"type_info":type_info,"url_info":url_info}, function(data, textStatus, xhr) {
-                        if(data['result'].length){
-                            $(type_info_ele.children('.am-panel-collapse').children()).html('')
+                    var table_ele_str = '<table class="am-table am-table-bordered am-table-radius am-table-striped"></table>';
+                    var table_ele = $(table_ele_str);
+                    var head_ele = $("<thead><tr><th>Url</th><th>Status</th></tr></thead>");
+                    table_ele.append(head_ele);
+                    var body_ele = $("<tbody></tbody>");
+                    table_ele.append(body_ele);
+                    $(type_info_ele.children('.am-panel-collapse').children()).append(table_ele);
+                    socket.emit('get_status_info', {"type_info":type_info,"url_info":url_info,"count":count});
+                    socket.on("get_status_info", function(data){
+                        if(data['result'] !== ""){
+                            var item_html = ""
+                            if(data['result']["status"]==="ok" || data['result']["status"]===2){
+                                item_html += '<tr class="am-success">';
+                            }
+                            else if(data['result']["status"]==="doing") {
+                                item_html += '<tr class="am-warning">';
+                            }
+                            else{
+                                item_html += '<tr class="am-danger>';
+                            }
+                            item_html += "<td>" + data['result']["url"] + "</td>";
+                            item_html += "<td>" + data['result']["status"] + "</td>";
+                            item_html += "</tr>"
+
+                            body_ele.append($(item_html));
+                            count += 1;
+
+                            socket.emit('get_status_info', {"type_info":type_info,"url_info":url_info,"count":count});
                         }
-                        for(var i in data['result']){
-                            p_html = "<b><p>" + data['result'][i] + "</p></b>"
-                            old_html = $(type_info_ele.children('.am-panel-collapse').children()).html()
-                            html = old_html + p_html
-                            $(type_info_ele.children('.am-panel-collapse').children()).html(html)
-                        }
-                    });
+                    })
                 }
                 else{
-                    $(type_info_ele.children('.am-panel-collapse').children()).html("")
+                    $(type_info_ele.children('.am-panel-collapse').children()).html("");
                 }
+            })
+
+            socket.on("get_all_status", function(msg){
+                for(var url in msg){
+                    x = document.getElementsByTagName("h4");
+                    for(var i=0;i<x.length;i++){
+                        if(url === x[i].textContent){
+                            if(msg[url]["all_status"] === '-1'){
+                                x[i].parentNode.parentNode.className = "am-panel am-panel-danger";
+                            }
+                            else if(msg[url]['total_status'] === '0'){
+                                x[i].parentNode.parentNode.className = "am-panel am-panel-default";
+                            }
+                            else if(msg[url]['total_status'] === '1'){
+                                x[i].parentNode.parentNode.className = "am-panel am-panel-warning";
+                            }
+                            else if(msg[url]['total_status'] === '2'){
+                                x[i].parentNode.parentNode.className = "am-panel am-panel-success";
+                            }
+                            else{
+                                x[i].parentNode.parentNode.className = "am-panel am-panel-danger";
+                            }
+                            var sub_type = x[i].parentNode.parentNode.lastChild.firstChild.firstChild.childNodes;
+                            for(var i=0; i<sub_type.length; i++){
+                                var text = sub_type[i].firstChild.firstChild.textContent;
+                                var key = text.replace(/ /gm,'_');
+                                if(key === "Scan"){
+                                    key = "scan";
+                                }
+                                if(msg[url][key] === "0"){
+                                    sub_type[i].className = "am-panel am-panel-default";
+                                }
+                                else if(msg[url][key] === "1"){
+                                    sub_type[i].className = "am-panel am-panel-warning";
+                                }
+                                else if(msg[url][key] === "2"){
+                                    sub_type[i].className = "am-panel am-panel-success";
+                                }
+                                else if(msg[url][key] === "-1"){
+                                    sub_type[i].className = "am-panel am-panel-danger";
+                                }
+                                else{
+                                    sub_type[i].className = "am-panel am-panel-danger";
+                                }
+                            }
+
+                        }
+
+                    }
+                }
+                socket.emit('get_all_status');
             });
+
         });
         
     });

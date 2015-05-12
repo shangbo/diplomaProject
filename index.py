@@ -3,11 +3,11 @@
 
 # third-party web frame lib
 from flask import Flask, render_template, request, session, jsonify
-
+from flask.ext.socketio import SocketIO, emit
 #standard lib
 import os
 import cPickle as pkl
-
+import time
 # custom lib
 import db_options as do
 from scan_manager import ScanManager
@@ -16,7 +16,7 @@ import util_functions as util
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
 
-
+socketio = SocketIO(app)
 
 @app.route("/")
 def login_page():
@@ -99,7 +99,7 @@ def get_process_info():
             conn = do.db_connect()
             urls = do.db_get_user_roots(conn, username)
             for url in urls:
-                check_types = ['Scan',]
+                check_types = ['scan',]
                 info = do.db_get_check_types(conn, username, url[0])
                 if info:
                     for i in info[0][:-1].split(','):
@@ -109,34 +109,6 @@ def get_process_info():
         else:
             return "error"
 
-@app.route("/get_status_info", methods=["POST"])
-def get_status_info():
-    if request.method == "POST":
-        username = ""
-        if 'username' in session:
-            username = session['username']
-            conn = do.db_connect()
-            root = request.form['url_info']
-            pre_needed_type = request.form['type_info']
-
-            start_i = pre_needed_type.find('_') + 1
-            end_i = pre_needed_type.find('_second_panel')
-            needed_type = pre_needed_type[start_i:end_i]
-            if needed_type == 'Scan':
-                info = []
-                pre_info = do.db_get_requests_url(conn, username, root)
-                for url, paras in pre_info:
-                    paras = pkl.loads(paras.encode("utf-8"))
-                    deal_info = util.concat_url(url, paras)
-                    info.append((deal_info,))
-            else:
-                info = do.db_get_url_status(conn, username, root, needed_type)
-            result = []
-            for i in info:
-                result.append(i[0])
-            return jsonify({"result":result})
-        else:
-            return "need login"
 
 @app.route("/get_history", methods=["post"])
 def get_history():
@@ -218,6 +190,73 @@ def register():
         else:
             return "-1"
         
+@socketio.on('message')
+def handle_message(message):
+    print message['data']
+
+@socketio.on('get_all_status')
+def get_all_status():
+    if 'username' in session:
+        username = session['username']
+        conn = do.db_connect()
+        all_status = dict()
+        urls = do.db_get_user_roots(conn, username)
+        for url in urls:
+            keys, values = do.db_get_all_status(conn, username, url[0])
+            keys = keys.split(",")
+            items = dict()
+            for index, key in enumerate(keys):
+                items[key] = str(values[index])
+
+            if values.count(0) == len(values):
+                items["total_status"] = "0"
+            if values.count(2) == len(values):
+                items["total_status"] = "2"
+            if values.count(0) != 0:
+                items["total_status"] = "1"
+            if values.count(-1) != 0:
+                items["total_status"] = "-1"
+            all_status[url[0]] = items
+            time.sleep(0.04)
+        emit("get_all_status", all_status)
+
+@socketio.on('get_status_info')
+def get_status_info(data):
+    if 'username' in session:
+        username = session['username']
+        conn = do.db_connect()
+        root = data['url_info']
+        count = data['count']
+        pre_needed_type = data['type_info']
+
+        start_i = pre_needed_type.find('_') + 1
+        end_i = pre_needed_type.find('_second_panel')
+        needed_type = pre_needed_type[start_i:end_i]
+        if needed_type == 'scan':
+            pre_info = do.db_get_requests_url(conn, username, root, count)
+            if pre_info:
+                paras = pkl.loads(pre_info[1].encode("utf-8"))
+                deal_info = util.concat_url(pre_info[0], paras)
+                info = {"url": deal_info, "status": "ok"}
+            else:
+                info = ""
+        else:#TODO
+            pre_info = do.db_get_url_status(conn, username, root, needed_type)
+            if pre_info:
+                paras = pkl.loads(pre_info[1].encode("utf-8"))
+                deal_info = util.concat_url(pre_info[0], paras)
+                status = pre_info[2]
+                if status == 1:
+                    status = "doing"
+                else:
+                    status = pre_info[2]
+                info = {"url": deal_info, "status": status}
+            else:
+                info = ""
+        emit("get_status_info", {"result": info})
+
+
+
 
 if __name__ == "__main__":
-    app.run(debug=True,port=5000)
+    socketio.run(app)
