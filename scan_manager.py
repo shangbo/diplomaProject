@@ -16,7 +16,7 @@ class ScanManager(object):
     def __init__(self, thread_num, request_num, root_url,check_types, username):
         self.root_url = root_url
         self.request_num = request_num
-        if thread_num <20:
+        if thread_num < 20:
             self.thread_num = thread_num
         else:
             self.thread_num = 10
@@ -55,18 +55,28 @@ class ScanManager(object):
         
 
     def check_vun(self):
-        pm = PluginsManager(self.thread_num, self.root_url, self.username, self.check_types)
-        
+        t = threading.Thread(target=self._check_vun_thread)
+        t.start()
 
+    def _check_vun_thread(self):
+        conn = do.db_connect()
+        is_finished = False
+        while not is_finished:
+            info = do.db_get_scan_status(conn, self.username, self.root_url)
+            if info[0] == 2:
+                is_finished = True
+        if is_finished:
+            pm = PluginsManager(self.thread_num, self.root_url, self.username, self.check_types)
+            t = threading.Thread(target=pm.wait_for_complete)
+            t.start()
 
     def do_scan(self):
         if self.connection_status == 1:
             conn = do.db_connect()
             rm = RequestManager(self.username, self.thread_num, self.request_num)
             rm.add_job(deal_page, self.root_url)
-            do.db_update_scan_status(conn, 1)
+            do.db_update_scan_status(conn, 1, self.username, self.root_url)
             do.db_close(conn)
             t = threading.Thread(target=rm.wait_for_complete)
             t.start()
-
 

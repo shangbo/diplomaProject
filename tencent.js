@@ -39,7 +39,7 @@ casper.then(function() {    //get forms' info(include all input name and value)
                         input_dicts[inputFields[i].getAttribute('name')] = inputFields[i].getAttribute('value');
                     }
                     else{
-                        input_dicts[inputFields[i].getAttribute('name')] = "test";
+                        input_dicts[inputFields[i].getAttribute('name')] = "";
                     }
                 }
             }//get and set inputs' value 
@@ -83,11 +83,25 @@ casper.then(function() {  // send form
             console.log(arg1);
             for(item in form_fill[form_item]){
                 console.log("    " + item + ":" + form_fill[form_item][item]);
-            }   
-            this.fill(arg1, form_fill[form_item], true);
+            }
+            console.log(JSON.stringify(form_fill[form_item]));
+            this.fill(arg1, {"commend":"all",
+                            "initiative_id":"tbindexz_20150512",
+                            "q":"",
+                            "search_type":"item",
+                            "sourceId":"tb.index",
+                            "spm":"1.7274553.1997520841.1",
+                            "ssid":"s5-e"
+                    }, true);
         }
     }
     console.log("sending end");
+});
+
+casper.then(function() {
+    this.evaluateOrDie(function() {
+        return /message sent/.test(document.body.innerText);
+    }, 'sending message failed');
 });
 
 casper.run(function() {

@@ -251,17 +251,26 @@ $(document).ready(function() {
                     socket.on("get_status_info", function(data){
                         if(data['result'] !== ""){
                             var item_html = ""
-                            if(data['result']["status"]==="ok" || data['result']["status"]===2){
+                            if(data['result']["status"]==="ok" || data['result']["status"]>=2){
                                 item_html += '<tr class="am-success">';
                             }
                             else if(data['result']["status"]==="doing") {
                                 item_html += '<tr class="am-warning">';
                             }
-                            else{
+                            else if(data['result']["status"]===-1){
                                 item_html += '<tr class="am-danger>';
                             }
+
                             item_html += "<td>" + data['result']["url"] + "</td>";
-                            item_html += "<td>" + data['result']["status"] + "</td>";
+                            if(data['result']["status"]===-1){
+                                item_html += "<td>" + "Exception" + "</td>";
+                            }
+                            else if(data['result']["status"]>=2){
+                                item_html += "<td>" + data['result']["status"] - 2 + "</td>";
+                            }
+                            else{
+                                item_html += "<td>" + data['result']["status"] + "</td>";
+                            }
                             item_html += "</tr>"
 
                             body_ele.append($(item_html));

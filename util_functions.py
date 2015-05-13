@@ -14,7 +14,7 @@ def deal_page(thread_name, link):
     # print thread_name + " is alive!"
     if isinstance(link, tuple):
         link = link[0]
-    casperjs_para = "".join(["--root_url=",link])
+    casperjs_para = "".join(["--root_url=", link])
     msg = commands.getstatusoutput("".join(["casperjs tencent.js " ,casperjs_para]))
     return msg[1]
 

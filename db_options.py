@@ -29,13 +29,12 @@ def db_check_md5(conn, md5):
         cursor.close()
         return 0
 
-def db_get_sql_injection_url(conn):
+def db_update_plugin_status(conn, status, plugin_name, _id):
     cursor = conn.cursor()
-    read_sql =  ''' select * from requests where sql_injection_status = 0'''
+    read_sql = ''' update requests set %s=%d where _id=%d ''' % (plugin_name, status, _id)
     cursor.execute(read_sql)
-    info = cursor.fetchall()
+    conn.commit()
     cursor.close()
-    return info
 
 
 def db_get_count(conn, root_url, username):
@@ -66,9 +65,9 @@ def db_store_scan_info(conn, scan_info):
     conn.commit()
     cursor.close()
 
-def db_update_scan_status(conn, status):
+def db_update_scan_status(conn, status, username, root):
     cursor = conn.cursor()
-    update_sql = '''update user_scan_record set scan_status=%d''' % status
+    update_sql = '''update user_scan_record set scan_status=%d where username='%s' and root='%s' ''' % (status, username, root)
     cursor.execute(update_sql)
     conn.commit()
     cursor.close()    
@@ -266,3 +265,39 @@ def db_get_all_status(conn, username, url):
     values = cursor.fetchone()
     keys = "scan, connection_status," + pre_check_types[0][:-1]
     return keys, values
+
+def db_get_urls_current_status(conn, username, root, check_type):
+    cursor = conn.cursor()
+    read_sql = '''select _id from requests where username='%s' and root='%s' and %s!=0 ''' % (username, root, check_type)
+    cursor.execute(read_sql)
+    if cursor.fetchone:
+        read_sql = '''select _id from requests where username='%s' and root='%s' and %s=1  ''' % (username, root, check_type)
+        cursor.execute(read_sql)
+        if cursor.fetchone:
+            return 1
+        else:
+            return 2
+    else:
+        return 0
+
+def db_update_plugin_total_status(conn, status, plugin_name, username, root):
+    cursor = conn.cursor()
+    update_sql = ''' update user_scan_info set %s=%d where username='%s' and root='%s' ''' % (plugin_name, status, username, root)
+    cursor.execute(update_sql)
+    conn.commit()
+    cursor.close()
+
+def db_get_scan_status(conn, username, root):
+    cursor = conn.cursor()
+    read_sql = '''select scan_status from user_scan_info where username='%s' and root='%s' ''' %(username, root)
+    cursor.execute(read_sql)
+    info = cursor.fetchone()
+    cursor.close()
+    return info
+
+def db_update_end_time(conn, username, root, end_time):
+    cursor = conn.cursor()
+    update_sql = '''update user_scan_info set end_time=%s where username='%s' and root='%s' ''' % (end_time, username, root)
+    cursor.execute(update_sql)
+    conn.commit()
+    cursor.close()

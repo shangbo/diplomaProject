@@ -176,7 +176,7 @@ class StoreWorker(threading.Thread):
         print "count:" + str(count)
         if count > self.request_num:
             self.stop_flag[0] = True
-            db_op.db_update_scan_status(conn, 2)
+            db_op.db_update_scan_status(conn, 2, self.username, self.root_url)
         db_op.db_close(conn)
 
 class RequestManager(object):
@@ -228,7 +228,7 @@ class RequestManager(object):
             else:
                 self.store_workers = []
                 break
-        del(self)
+        del self
         print "............................................"
 
 

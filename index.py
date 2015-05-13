@@ -64,7 +64,8 @@ def submit_form():
                     check_types += ','
             rm = ScanManager(thread_num=thread_number, request_num=request_number,
                              root_url=url, check_types=check_types, username=username)
-            rm.do_scan()
+            is_finished = rm.do_scan()
+            rm.check_vun(is_finished)
             return "1"  # successful
         else:
             return "-1"  # need login
