@@ -1,0 +1,21 @@
+#web批量漏洞检测框架(毕业设计)
+
+##环境:
+```
+OS: Ubuntu 14.04
+Python: 2.7
+Casperjs: 1.1.0-beta3
+Phantomjs:1.8.2
+Flask: 0.10.1
+Flask-socket-io
+etc....
+```
+
+##当前主要代码行数:
+```
+Python:1238
+Js: 508
+html: 224
+```
+
+其他待补全
