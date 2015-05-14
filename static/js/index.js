@@ -1,4 +1,5 @@
 $(document).ready(function() {
+    var socket = io.connect("http://" + document.domain + ':' + location.port);
     $("#process_query").hide('fast', function() {
         $("#submit_history").hide('fast', function() {
             $("#mod_personal_info").hide('fast', function() {
@@ -55,6 +56,7 @@ $(document).ready(function() {
         }
     });
     $("#ch_submit_window").click(function(event) {
+        socket.on("disconnect", function () {console.log("disconnect");});
         $("#ch_submit_window").attr('class', 'am-active');
         $("#ch_submit_history").attr("class", '');
         $("#ch_mod_personal_info").attr("class", '');
@@ -68,6 +70,7 @@ $(document).ready(function() {
         });
     });
     $("#ch_submit_history").click(function(event) {
+        socket.on("disconnect", function () {console.log("disconnect");});
         $("#ch_submit_window").attr('class', '');
         $("#ch_submit_history").attr("class", 'am-active');
         $("#ch_mod_personal_info").attr("class", '');
@@ -97,7 +100,6 @@ $(document).ready(function() {
                         html += "</td>"
                     }
                     html += "</tr>"
-                    console.log(html);
                     $("#table_body").append(html);
                     var html = "";
                 }
@@ -105,6 +107,7 @@ $(document).ready(function() {
         });
     });
     $("#ch_mod_personal_info").click(function(event) {
+        socket.on("disconnect", function () {console.log("disconnect");});
         $("#ch_submit_window").attr('class', '');
         $("#ch_submit_history").attr("class", '');
         $("#ch_mod_personal_info").attr("class", 'am-active');
@@ -129,44 +132,12 @@ $(document).ready(function() {
                 }
             }
         });
-        $("#change_user_info_btn").click(function(event) {
-            if($("#update_password1") === $("#update_password2")){
-                console.log('..');
-                $.ajax({
-                        cache: true,
-                        type: "POST",
-                        url: "/change_user_info",
-                        data:$('#change_user_info_form').serialize(),
-                        async: false,
-                        error: function(request) {
-                            // $("#failed_alert").alert();
-                        },
-                        success: function(data) {
-                            if(data === "-1"){
-                                alert("password incorrect");
-                            }
-                            else if(data === "2"){
-                                alert("nothing to change");
-                            }
-                            else if(data === "need login"){
-                                alert("need login");
-                            }
-                            else{
-                                alert("update success");   
-                            }
-                        }
-                });
-            }
-            else{
-                alert("password and repeat password not match!");
-            }
-        });
-        
     });
-
     $("#ch_process_query").click(function(event) {
-
-        //socket.on("get_total_status",{url: })
+        socket.on("connect", function() {
+            console.log("connect");
+        });
+        socket.emit('get_all_status');
         $("#ch_submit_window").attr('class', '');
         $("#ch_submit_history").attr("class", '');
         $("#ch_mod_personal_info").attr("class", '');
@@ -181,10 +152,6 @@ $(document).ready(function() {
         });
 
         $.post('/get_process_info', {}, function(data, textStatus, xhr) {
-            var socket = io.connect("http://" + document.domain + ':' + location.port);
-            socket.on("connect", function() {
-                socket.emit('get_all_status');
-            });
             $("#process_query").html("");
             var count = 0;
             var url_div = '<div class="am-panel-group" id="accordion_primary"></div>';
@@ -238,105 +205,141 @@ $(document).ready(function() {
                 var type_info = type_info_ele.attr('id');
                 var url_info = type_info_ele.parent().parent().parent().siblings("div").children().text();
                 var judge_conditon = ($(e.target).attr('class') === "am-panel-title  get_info_class am-collapsed");
-                var count = 0;
                 if(judge_conditon){
+                    var count = 0;
                     var table_ele_str = '<table class="am-table am-table-bordered am-table-radius am-table-striped"></table>';
                     var table_ele = $(table_ele_str);
-                    var head_ele = $("<thead><tr><th>Url</th><th>Status</th></tr></thead>");
+                    var head_ele = $("<thead><tr><th>Url</th><th>Paras</th><th>Status</th></tr></thead>");
                     table_ele.append(head_ele);
-                    var body_ele = $("<tbody></tbody>");
+                    var body_ele = $("<tbody id='process_tbody'></tbody>");
                     table_ele.append(body_ele);
                     $(type_info_ele.children('.am-panel-collapse').children()).append(table_ele);
-                    socket.emit('get_status_info', {"type_info":type_info,"url_info":url_info,"count":count});
-                    socket.on("get_status_info", function(data){
-                        if(data['result'] !== ""){
-                            var item_html = ""
-                            if(data['result']["status"]==="ok" || data['result']["status"]>=2){
-                                item_html += '<tr class="am-success">';
-                            }
-                            else if(data['result']["status"]==="doing") {
-                                item_html += '<tr class="am-warning">';
-                            }
-                            else if(data['result']["status"]===-1){
-                                item_html += '<tr class="am-danger>';
-                            }
-
-                            item_html += "<td>" + data['result']["url"] + "</td>";
-                            if(data['result']["status"]===-1){
-                                item_html += "<td>" + "Exception" + "</td>";
-                            }
-                            else if(data['result']["status"]>=2){
-                                item_html += "<td>" + data['result']["status"] - 2 + "</td>";
-                            }
-                            else{
-                                item_html += "<td>" + data['result']["status"] + "</td>";
-                            }
-                            item_html += "</tr>"
-
-                            body_ele.append($(item_html));
-                            count += 1;
-
-                            socket.emit('get_status_info', {"type_info":type_info,"url_info":url_info,"count":count});
-                        }
-                    })
+                    socket.emit('get_status_info', {"type_info":type_info,"url_info":url_info,"count":count})
                 }
                 else{
                     $(type_info_ele.children('.am-panel-collapse').children()).html("");
                 }
             })
 
-            socket.on("get_all_status", function(msg){
-                for(var url in msg){
-                    x = document.getElementsByTagName("h4");
-                    for(var i=0;i<x.length;i++){
-                        if(url === x[i].textContent){
-                            if(msg[url]["all_status"] === '-1'){
-                                x[i].parentNode.parentNode.className = "am-panel am-panel-danger";
-                            }
-                            else if(msg[url]['total_status'] === '0'){
-                                x[i].parentNode.parentNode.className = "am-panel am-panel-default";
-                            }
-                            else if(msg[url]['total_status'] === '1'){
-                                x[i].parentNode.parentNode.className = "am-panel am-panel-warning";
-                            }
-                            else if(msg[url]['total_status'] === '2'){
-                                x[i].parentNode.parentNode.className = "am-panel am-panel-success";
-                            }
-                            else{
-                                x[i].parentNode.parentNode.className = "am-panel am-panel-danger";
-                            }
-                            var sub_type = x[i].parentNode.parentNode.lastChild.firstChild.firstChild.childNodes;
-                            for(var i=0; i<sub_type.length; i++){
-                                var text = sub_type[i].firstChild.firstChild.textContent;
-                                var key = text.replace(/ /gm,'_');
-                                if(key === "Scan"){
-                                    key = "scan";
-                                }
-                                if(msg[url][key] === "0"){
-                                    sub_type[i].className = "am-panel am-panel-default";
-                                }
-                                else if(msg[url][key] === "1"){
-                                    sub_type[i].className = "am-panel am-panel-warning";
-                                }
-                                else if(msg[url][key] === "2"){
-                                    sub_type[i].className = "am-panel am-panel-success";
-                                }
-                                else if(msg[url][key] === "-1"){
-                                    sub_type[i].className = "am-panel am-panel-danger";
-                                }
-                                else{
-                                    sub_type[i].className = "am-panel am-panel-danger";
-                                }
-                            }
-
-                        }
-
-                    }
-                }
-                socket.emit('get_all_status');
-            });
 
         });
         
     });
+
+    socket.on("get_status_info", function(data){
+        var count = data['count'];
+        var type_info = data['type_info']
+        var url_info = data['url_info']
+        if(data['result'] !== ""){
+            var item_html = "";
+            if(data['result']["status"]==="ok" || data['result']["status"]>=2){
+                item_html += '<tr class="am-success">';
+            }
+            else if(data['result']["status"]==="doing") {
+                item_html += '<tr class="am-warning">';
+            }
+            else if(data['result']["status"]===-1){
+                item_html += '<tr class="am-danger>';
+            }
+            item_html += "<td>" + data['result']["url"] + "</td>";
+            item_html += "<td>" + data['result']["paras"] + "</td>";
+            if(data['result']["status"]===-1){
+                item_html += "<td>" + "Exception" + "</td>";
+            }
+            else if(data['result']["status"] >= 2){
+                item_html += "<td>" + (data['result']["status"] - 2).toString() + "</td>";
+            }
+            else{
+                item_html += "<td>" + data['result']["status"] + "</td>";
+            }
+            item_html += "</tr>"
+            body_ele = $("#process_tbody");
+            body_ele.append($(item_html));
+            count += 1;
+            socket.emit('get_status_info', {"type_info":type_info,"url_info":url_info,"count":count});
+        }
+    })
+    socket.on("get_all_status", function(msg){
+        for(var url in msg){
+            var x = document.getElementsByTagName("h4");
+            for(var i=0;i<x.length;i++){
+                if(url === x[i].textContent){
+                    if(msg[url]["all_status"] === '-1'){
+                        x[i].parentNode.parentNode.className = "am-panel am-panel-danger";
+                    }
+                    else if(msg[url]['total_status'] === '0'){
+                        x[i].parentNode.parentNode.className = "am-panel am-panel-default";
+                    }
+                    else if(msg[url]['total_status'] === '1'){
+                        x[i].parentNode.parentNode.className = "am-panel am-panel-warning";
+                    }
+                    else if(msg[url]['total_status'] === '2'){
+                        x[i].parentNode.parentNode.className = "am-panel am-panel-success";
+                    }
+                    else{
+                        x[i].parentNode.parentNode.className = "am-panel am-panel-danger";
+                    }
+                    var sub_type = x[i].parentNode.parentNode.lastChild.firstChild.firstChild.childNodes;
+                    for(var i=0; i<sub_type.length; i++){
+                        var text = sub_type[i].firstChild.firstChild.textContent;
+                        var key = text.replace(/ /gm,'_');
+                        if(key === "Scan"){
+                            key = "scan";
+                        }
+                        if(msg[url][key] === "0"){
+                            sub_type[i].className = "am-panel am-panel-default";
+                        }
+                        else if(msg[url][key] === "1"){
+                            sub_type[i].className = "am-panel am-panel-warning";
+                        }
+                        else if(msg[url][key] === "2"){
+                            sub_type[i].className = "am-panel am-panel-success";
+                        }
+                        else if(msg[url][key] === "-1"){
+                            sub_type[i].className = "am-panel am-panel-danger";
+                        }
+                        else{
+                            sub_type[i].className = "am-panel am-panel-danger";
+                        }
+                    }
+                }
+            }
+        }
+        socket.emit('get_all_status');
+    });
+    $("#change_user_info_btn").click(function(event) {
+        if($("#update_password1") === $("#update_password2")){
+            $.ajax({
+                cache: true,
+                type: "POST",
+                url: "/change_user_info",
+                data:$('#change_user_info_form').serialize(),
+                async: false,
+                error: function(request) {
+                           // $("#failed_alert").alert();
+                },
+                success: function(data) {
+                    if(data === "-1"){
+                        alert("password incorrect");
+                    }
+                    else if(data === "2"){
+                        alert("nothing to change");
+                    }
+                    else if(data === "need login"){
+                        alert("need login");
+                    }
+                    else{
+                        alert("update success");
+                    }
+                }
+            });
+        }
+        else{
+            alert("password and repeat password not match!");
+        }
+    });
 });
+
+
+
+

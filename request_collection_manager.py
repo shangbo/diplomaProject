@@ -10,14 +10,16 @@ import md5
 import cPickle as pkl
 import getopt
 
+mylock = threading.RLock()
+
 #custom lib
 import db_options as db_op
 from util_functions import deal_page, request_store, usage
-COUNT = 0
 ISOTIMEFORMAT = '%Y-%m-%d %X'
 
 class PageWorker(threading.Thread):
     worker_count = 0
+    md5_pool = []
     def __init__(self, page_queue, store_queue, root_url, request_num, stop_flag, time_out=5):
         PageWorker.worker_count += 1
         self._id = PageWorker.worker_count
@@ -72,7 +74,6 @@ class PageWorker(threading.Thread):
             return 0
 
     def _deal_get_request(self, item):
-        global COUNT
         link = ""
         arg0 = item.split(": ")
         if len(arg0) == 2 and arg0[1].startswith("http"):
@@ -97,43 +98,44 @@ class PageWorker(threading.Thread):
                                 paras.append(arg1)
                         if paras:
                             m = md5.new()
-                            m.update(link+str(paras))
+                            sorted_paras = []
+                            for p in paras:
+                                sorted_paras.append(p[0])
+                            sorted_paras.sort()
+                            m.update(link+str(sorted_paras))
                             md5_string = m.hexdigest()
-                            if not db_op.db_check_md5(conn, md5_string):
-                                COUNT += 1
-                                # print COUNT
+                            if not self.md5_pool.count(md5_string):
+                            # if not db_op.db_check_md5(conn, md5_string):
+                                self.md5_pool.append(md5_string)
                                 para_s = pkl.dumps(paras)
                                 argument = (self.root_url[0], "GET", time.strftime(ISOTIMEFORMAT, time.localtime()), md5_string, link, para_s)
-                                # print md5_string
                                 self.store_queue.put((request_store, argument))
                             else:
                                 pass
-                                # print "old url"
                     else:
                         if para_str.find("=") != -1:
                             paras.append(tuple(para_str.split("=")))
                             m = md5.new()
-                            m.update(link+str(paras))
+                            sorted_paras = []
+                            for p in paras:
+                                sorted_paras.append(p[0])
+                            sorted_paras.sort()
+                            m.update(link+str(sorted_paras))
                             md5_string = m.hexdigest()
-                            if not db_op.db_check_md5(conn, md5_string):
-                                COUNT += 1
-                                # print COUNT
+                            if not self.md5_pool.count(md5_string):
+                            # if not db_op.db_check_md5(conn, md5_string):
+                                self.md5_pool.append(md5_string)
                                 para_s = pkl.dumps(paras)
                                 argument = (self.root_url[0], "GET", time.strftime(ISOTIMEFORMAT, time.localtime()), md5_string, link, para_s)
-                                # print md5_string
-                                
+
                                 self.store_queue.put((request_store, argument))
                             else:
                                 pass
-                                # print "old url"
                     db_op.db_close(conn)
-                    # print "---------------"
                 else:
                     pass
-                    # print "js or css resource"
             else:
                 pass
-                # print "other website link"
         else:
             if not (link.endswith(".js") or link.endswith(".css")):
                 self.page_queue.put((deal_page, link))
@@ -173,20 +175,23 @@ class StoreWorker(threading.Thread):
     def _is_stop(self):
         conn = db_op.db_connect()
         count = db_op.db_get_count(conn, self.root_url, self.username)
+        mylock.acquire()
         print "count:" + str(count)
+        mylock.release()
         if count > self.request_num:
             self.stop_flag[0] = True
-            db_op.db_update_scan_status(conn, 2, self.username, self.root_url)
+            db_op.db_update_scan_status(conn, 2, self.username, self.root_url[0])
         db_op.db_close(conn)
 
 class RequestManager(object):
     """ 
         TODO
     """
-    def __init__(self, username, worker_num, request_num):
+    def __init__(self, username, worker_num, request_num, is_finished=[False, ]):
         self.page_queue = Queue.Queue()
         self.store_queue = Queue.Queue()
         self.page_workers = []
+        self.is_finished = is_finished
         self.store_workers = []
         self.worker_num = worker_num
         self.request_num = request_num
@@ -228,6 +233,7 @@ class RequestManager(object):
             else:
                 self.store_workers = []
                 break
+        self.is_finished[0] = True
         del self
         print "............................................"
 

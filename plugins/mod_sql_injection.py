@@ -15,11 +15,11 @@ def get_url(item):
     if item[4] == "GET":
         url = util.concat_url(item[5], paras)
         data = paras
-        return (url, data, 'GET')
+        return url, data, 'GET'
     else:
         url = item[5]
         data = paras
-        return (url, data, 'POST')
+        return url, data, 'POST'
 
 
 def run(thread_name, item):

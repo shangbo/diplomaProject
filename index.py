@@ -33,7 +33,7 @@ def index():
         if info[0] == 1:
             session['username'] = username
             plugins = load_plugins()
-            return render_template("submit_page.html",plugins=plugins)
+            return render_template("submit_page.html", plugins=plugins)
         elif info[0] == 0:
             return "login failed"
         else:
@@ -43,7 +43,6 @@ def index():
 @app.route("/submit_form.html", methods=["POST"])
 def submit_form():
     if request.method == "POST":
-        username = ""
         if 'username' in session:
             username = session['username']
             check_types = ""
@@ -64,8 +63,8 @@ def submit_form():
                     check_types += ','
             rm = ScanManager(thread_num=thread_number, request_num=request_number,
                              root_url=url, check_types=check_types, username=username)
-            is_finished = rm.do_scan()
-            rm.check_vun(is_finished)
+            rm.do_scan()
+            rm.check_vun()
             return "1"  # successful
         else:
             return "-1"  # need login
@@ -218,7 +217,7 @@ def get_all_status():
             if values.count(-1) != 0:
                 items["total_status"] = "-1"
             all_status[url[0]] = items
-            time.sleep(0.04)
+            time.sleep(0.06)
         emit("get_all_status", all_status)
 
 @socketio.on('get_status_info')
@@ -229,7 +228,6 @@ def get_status_info(data):
         root = data['url_info']
         count = data['count']
         pre_needed_type = data['type_info']
-
         start_i = pre_needed_type.find('_') + 1
         end_i = pre_needed_type.find('_second_panel')
         needed_type = pre_needed_type[start_i:end_i]
@@ -237,24 +235,30 @@ def get_status_info(data):
             pre_info = do.db_get_requests_url(conn, username, root, count)
             if pre_info:
                 paras = pkl.loads(pre_info[1].encode("utf-8"))
-                deal_info = util.concat_url(pre_info[0], paras)
-                info = {"url": deal_info, "status": "ok"}
+                key = []
+                for p in paras:
+                    key.append(p[0])
+                url = pre_info[0]
+                info = {"url": url, "paras": str(key), "status": "ok"}
             else:
                 info = ""
-        else:#TODO
-            pre_info = do.db_get_url_status(conn, username, root, needed_type)
+        else:
+            pre_info = do.db_get_url_status(conn, username, root, needed_type, count)
             if pre_info:
                 paras = pkl.loads(pre_info[1].encode("utf-8"))
-                deal_info = util.concat_url(pre_info[0], paras)
+                key = []
+                for p in paras:
+                    key.append(p[0])
+                url = pre_info[0]
                 status = pre_info[2]
                 if status == 1:
                     status = "doing"
                 else:
                     status = pre_info[2]
-                info = {"url": deal_info, "status": status}
+                info = {"url": url, "paras": str(key), "status": status}
             else:
                 info = ""
-        emit("get_status_info", {"result": info})
+        emit("get_status_info", {"result": info, "count":count, "type_info": pre_needed_type, "url_info": root})
 
 
 

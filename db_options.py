@@ -18,16 +18,16 @@ def db_store_request(conn, info):
     conn.commit()
     cursor.close()
 
-def db_check_md5(conn, md5):
-    cursor = conn.cursor()
-    read_sql = "select * from requests where md5='%s'" % md5
-    cursor.execute(read_sql)
-    if cursor.fetchone():
-        cursor.close()
-        return 1
-    else:
-        cursor.close()
-        return 0
+# def db_check_md5(conn, md5):
+#     cursor = conn.cursor()
+#     read_sql = "select * from requests where md5='%s'" % md5
+#     cursor.execute(read_sql)
+#     if cursor.fetchone():
+#         cursor.close()
+#         return 1
+#     else:
+#         cursor.close()
+#         return 0
 
 def db_update_plugin_status(conn, status, plugin_name, _id):
     cursor = conn.cursor()
@@ -79,7 +79,7 @@ def db_move_to_history(conn, username, root):
     info = cursor.fetchone()
     if info:
         check_types = info[7][:-1]
-        info = list(info)[1:9]
+        info = list(info)[1:10]
         read_sql = '''select %s from user_scan_record where username='%s' and root='%s' ''' % (check_types, username, root)
         cursor.execute(read_sql)
         status = cursor.fetchone()
@@ -89,7 +89,7 @@ def db_move_to_history(conn, username, root):
             tmp_str += ',%d'
         if info:
             write_sql_before = '''insert into scan_history(username, root, request_num, thread_num, connection_status, scan_status, check_types, start_time, end_time,%s)''' % check_types
-            write_sql_after = ''' values('%s','%s', %d, %d, %d, %d''' + ''' ,'%s' ,'%s', 'xxxx' ''' + tmp_str + ')'
+            write_sql_after = ''' values('%s','%s', %d, %d, %d, %d''' + ''' ,'%s' ,'%s', '%s' ''' + tmp_str + ')'
             write_sql_after = write_sql_after % tuple(info)
             write_sql =  write_sql_before + write_sql_after
             cursor.execute(write_sql)
@@ -109,15 +109,15 @@ def db_clear_repeat_scan(conn,username, root_url):
 
 def db_get_user_roots(conn, username):
     cursor = conn.cursor()
-    read_sql =  ''' select root from user_scan_record where username='%s' '''  % username
+    read_sql =  ''' select root from user_scan_record where username='%s' ''' % username
     cursor.execute(read_sql)
     urls = cursor.fetchall()
     cursor.close()
     return urls
 
-def db_get_url_status(conn, username, root, needed_type):
+def db_get_url_status(conn, username, root, needed_type, count):
     cursor = conn.cursor()
-    read_sql = '''select url, keys_values, %s from requests where username='%s' and root='%s' and %s!=0''' % (needed_type, username, root, needed_type)
+    read_sql = '''select url, keys_values, %s from requests where username='%s' and root='%s' and %s!=0 limit %d,1''' % (needed_type, username, root, needed_type, count)
     cursor.execute(read_sql)
     info = cursor.fetchone()
     cursor.close()
@@ -199,7 +199,7 @@ def db_get_history_field(conn):
 
 def db_get_history(conn, username):
     cursor = conn.cursor()
-    read_sql =  '''select * from scan_history where username='%s' ''' % username
+    read_sql =  '''select * from scan_history where username='%s' order by _id DESC ''' % username
     cursor.execute(read_sql)
     info = cursor.fetchall()
     cursor.close()
@@ -270,10 +270,10 @@ def db_get_urls_current_status(conn, username, root, check_type):
     cursor = conn.cursor()
     read_sql = '''select _id from requests where username='%s' and root='%s' and %s!=0 ''' % (username, root, check_type)
     cursor.execute(read_sql)
-    if cursor.fetchone:
+    if cursor.fetchone():
         read_sql = '''select _id from requests where username='%s' and root='%s' and %s=1  ''' % (username, root, check_type)
         cursor.execute(read_sql)
-        if cursor.fetchone:
+        if cursor.fetchone():
             return 1
         else:
             return 2
@@ -282,22 +282,23 @@ def db_get_urls_current_status(conn, username, root, check_type):
 
 def db_update_plugin_total_status(conn, status, plugin_name, username, root):
     cursor = conn.cursor()
-    update_sql = ''' update user_scan_info set %s=%d where username='%s' and root='%s' ''' % (plugin_name, status, username, root)
+    update_sql = ''' update user_scan_record set %s=%d where username='%s' and root='%s' ''' % (plugin_name, status, username, root)
     cursor.execute(update_sql)
     conn.commit()
     cursor.close()
 
 def db_get_scan_status(conn, username, root):
     cursor = conn.cursor()
-    read_sql = '''select scan_status from user_scan_info where username='%s' and root='%s' ''' %(username, root)
+    read_sql = '''select scan_status from user_scan_record where username='%s' and root='%s' ''' % (username, root)
     cursor.execute(read_sql)
     info = cursor.fetchone()
+    print info
     cursor.close()
     return info
 
 def db_update_end_time(conn, username, root, end_time):
     cursor = conn.cursor()
-    update_sql = '''update user_scan_info set end_time=%s where username='%s' and root='%s' ''' % (end_time, username, root)
+    update_sql = '''update user_scan_record set end_time='%s' where username='%s' and root='%s' ''' % (end_time, username, root)
     cursor.execute(update_sql)
     conn.commit()
     cursor.close()

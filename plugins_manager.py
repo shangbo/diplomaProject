@@ -6,7 +6,7 @@ import sys
 import Queue
 import threading
 import imp
-from xml.etree.ElementTree import Element, SubElement, tostring
+from xml.etree.ElementTree import Element, SubElement, tostring, parse
 from xml.dom import minidom
 import md5
 import cPickle as pkl
@@ -22,7 +22,7 @@ class PluginsManager(object):
     def __init__(self, worker_num, root_url, username, check_types):
         self.wait_queue = Queue.Queue()
         self.workers = []
-        self.worker_num = worker_num
+        self.worker_num = 1
         self.root_url = [root_url, ]
         self.username = username
         self.check_types = check_types
@@ -36,20 +36,25 @@ class PluginsManager(object):
         for i in range(self.worker_num):
             worker = PluginWorker(self.wait_queue, self.stop_flag)
             self.workers.append(worker)
+        print "init threads file finished"
 
     def _init_xml_files(self):
         check_types = self.check_types.split(',')
         for mod_name in check_types:
-            root = Element('Buglist')
-            root.set("coding", 'utf-8')
-            root.set("root_url", self.root_url)
-            root.set("username", self.username)
-            root.set("type", mod_name)
-            rough_xml = tostring(root, 'utf-8')
-            reparsed = minidom.parseString(rough_xml)
-            xml_file_name = md5.new().update(self.username + self.root_url + mod_name).digest()
-            with open(xml_file_name, 'w') as f:
-                f.write(reparsed.toprettyxml(indent="  "))
+            if mod_name:
+                root = Element('Buglist')
+                root.set("coding", 'utf-8')
+                root.set("root_url", self.root_url[0])
+                root.set("username", self.username)
+                root.set("type", mod_name)
+                rough_xml = tostring(root, 'utf-8')
+                reparsed = minidom.parseString(rough_xml)
+                m = md5.new()
+                m.update(self.username + self.root_url[0] + mod_name)
+                xml_file_name = m.hexdigest() + '.xml'
+                with open("./report/" + xml_file_name, 'w') as f:
+                    f.write(reparsed.toprettyxml(indent="  "))
+        print "init xml file finished"
 
     def _auto_add_jobs(self):
         check_types = self.check_types.split(',')
@@ -68,6 +73,7 @@ class PluginsManager(object):
                 count += 1
                 self.wait_queue.put((types_run_function[func_index], i))
         do.db_close(conn)
+        print "add jobs finished"
 
     def wait_for_complete(self):
         while len(self.workers):
@@ -80,7 +86,7 @@ class PluginsManager(object):
                 self.workers = []
                 break
         conn = do.db_connect()
-        do.db_update_end_time(conn, self.username, self.root_url, time.strftime(ISOTIMEFORMAT, time.localtime()))
+        do.db_update_end_time(conn, self.username, self.root_url[0], time.strftime(ISOTIMEFORMAT, time.localtime()))
         do.db_close(conn)
         del self
 
@@ -105,15 +111,13 @@ class PluginWorker(threading.Thread):
                 conn = do.db_connect()
                 do.db_update_plugin_status(conn, 1, callback.__module__, args[0])
                 res = callback(self.getName(), args)
-                xml_file_name = md5.new().update(args[1] + args[2] + callback.__module__).digest()
-
+                m = md5.new()
+                m.update(args[1] + args[2] + callback.__module__)
+                xml_file_name = m.hexdigest()
                 mylock.acquire()
-                with open(xml_file_name, "r") as f:
-                    xml_string = f.read()
+                ele = parse("./report/" + xml_file_name + '.xml')
                 mylock.release()
-
-                reparsed = minidom.parseString(xml_string)
-                buglist = reparsed.getElementsByTagName("Buglist")[0]
+                buglist = ele.getroot()
                 bug = SubElement(buglist, "Bug")
                 paras = pkl.loads(args[6].encode("utf-8"))
                 url = util.concat_url(args[5], paras)
@@ -124,11 +128,12 @@ class PluginWorker(threading.Thread):
                 status = SubElement(bug, "log")
                 status.text = res[2]
                 rough_xml = tostring(buglist, 'utf-8')
-                reparsed = minidom.parseString(rough_xml)
+                # reparsed = minidom.parseString(rough_xml)
 
                 mylock.acquire()
-                with open(xml_file_name, "r") as f:
-                    f.write(reparsed.toprettyxml(indent="  "))
+                with open("./report/" + xml_file_name + '.xml', "w") as f:
+                    # print reparsed.toprettyxml(indent="  ")
+                    f.write(rough_xml)
                 mylock.release()
 
                 if res[0] == -1:
@@ -142,7 +147,7 @@ class PluginWorker(threading.Thread):
             except Queue.Empty:
                 self.stop_flag[0] = True
             except:
-                print "thread %s had some error: %s"  % (self.getName(), sys.exc_info())
+                print "thread %s had some error: %s" % (self.getName(), sys.exc_info())
         else:
             while not self.wait_queue.empty():
                 self.wait_queue.get()
@@ -153,7 +158,8 @@ def load_plugins():
     pre_plugins = os.listdir('./plugins') #hard Write
     plugins = []
     for p in pre_plugins:
-        plugins.append(p[:-3])
+        if p.startswith("mod") and p.endswith(".py"):
+            plugins.append(p[:-3])
     return plugins
 
 def is_plugin_exist(plugin_name):
@@ -164,5 +170,5 @@ def is_plugin_exist(plugin_name):
         return False
 
 if __name__ == '__main__':
-    pm = PluginsManager(1, "http://www.taobao.com", "loftysoul", "mod_sql_injection,")
+    pm = PluginsManager(1, "http://www.taobao.com", "loftysoul", "mod_xss,")
     pm.wait_for_complete()
