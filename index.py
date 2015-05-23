@@ -13,7 +13,7 @@ import db_options as do
 from scan_manager import ScanManager
 from plugins_manager import load_plugins
 import util_functions as util
-app = Flask(__name__)
+app = Flask("index")
 app.secret_key = os.urandom(24)
 
 socketio = SocketIO(app)
@@ -38,7 +38,8 @@ def index():
             return "login failed"
         else:
             return "bad request"
-
+    else:
+	return "bad method"
 
 @app.route("/submit_form.html", methods=["POST"])
 def submit_form():
