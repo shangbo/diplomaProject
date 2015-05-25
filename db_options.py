@@ -247,12 +247,12 @@ def db_add_user(conn, username, passwd, email):
     cursor.execute(read_sql)
     info = cursor.fetchone()
     if info:
-        return -1
+        return "-1"
     else:
         insert_sql = '''insert into user_info(username, passwd, email) values('%s', '%s', '%s')''' % (username, passwd, email)
         result = cursor.execute(insert_sql)
         conn.commit()
-        return result
+        return "1"
     cursor.close()
     
 def db_get_all_status(conn, username, url):

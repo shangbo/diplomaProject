@@ -189,7 +189,7 @@ def register():
             result = do.db_add_user(conn, username, passwd, email)
             return result
         else:
-            return "-1"
+            return "-2"
         
 @socketio.on('message')
 def handle_message(message):

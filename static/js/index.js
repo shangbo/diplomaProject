@@ -309,6 +309,9 @@ $(document).ready(function() {
     });
     $("#change_user_info_btn").click(function(event) {
         if($("#update_password1") === $("#update_password2")){
+            alert("new password and old password not match!");
+        }
+        else{
             $.ajax({
                 cache: true,
                 type: "POST",
@@ -333,9 +336,6 @@ $(document).ready(function() {
                     }
                 }
             });
-        }
-        else{
-            alert("password and repeat password not match!");
         }
     });
 });
