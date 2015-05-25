@@ -1,0 +1,11 @@
+<Buglist coding="utf-8" root_url="http://www.taobao.com" type="mod_xss" username="loftysoul">
+    <Bug>
+        <url>http://hi.taobao.com/market/hi/daren0515.php?acm=20140506001.1003.2.280985</url>
+        <Status>Timeout</Status>
+        <log>log</log>
+    </Bug>
+    <Bug>
+        <url>http://hs.simba.taobao.com/?name=tbhs&amp;nn=&amp;count=13&amp;_ksTS=1432386054523_37&amp;callback=jsonp38</url>
+        <Status>Timeout</Status>
+        <log>log</log>
+</Buglist>

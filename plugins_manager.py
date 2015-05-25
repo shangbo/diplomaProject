@@ -155,7 +155,10 @@ class PluginWorker(threading.Thread):
 
 
 def load_plugins():
-    pre_plugins = os.listdir('./plugins') #hard Write
+    try:
+        pre_plugins = os.listdir('./plugins') #hard Write
+    except OSError:
+        pre_plugins = os.listdir('./diplomaProject/plugins') #hard Write
     plugins = []
     for p in pre_plugins:
         if p.startswith("mod") and p.endswith(".py"):
