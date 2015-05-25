@@ -30,6 +30,7 @@ def index():
         password = request.form["password"]
         conn = do.db_connect()
         info = do.db_check_login(conn, username, password)
+        do.close(conn)
         if info[0] == 1:
             session['username'] = username
             plugins = load_plugins()
@@ -39,7 +40,7 @@ def index():
         else:
             return "bad request"
     else:
-	return "bad method"
+        return "bad method"
 
 @app.route("/submit_form.html", methods=["POST"])
 def submit_form():
@@ -187,6 +188,7 @@ def register():
         if username and passwd and email:
             conn = do.db_connect()
             result = do.db_add_user(conn, username, passwd, email)
+            do.db_close(conn)
             return result
         else:
             return "-2"

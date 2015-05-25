@@ -13,7 +13,6 @@ $(document).ready(function() {
                             // $("#failed_alert").alert();
                         },
                         success: function(data) {
-                            alert(data);
                             if(data === "1"){
                                 alert("register successful!")
                             }
