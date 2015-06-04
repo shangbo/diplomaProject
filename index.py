@@ -275,5 +275,4 @@ def get_status_info(data):
 
 
 if __name__ == "__main__":
-    # socketio.run(app)
-    app.run(debug=True)
+    socketio.run(app)
