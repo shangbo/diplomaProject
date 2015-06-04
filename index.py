@@ -26,11 +26,12 @@ def login_page():
 @app.route("/submit_page.html", methods=["POST"])
 def index():
     if request.method == 'POST':
+
         username = request.form["username"]
         password = request.form["password"]
+
         conn = do.db_connect()
         info = do.db_check_login(conn, username, password)
-        do.close(conn)
         if info[0] == 1:
             session['username'] = username
             plugins = load_plugins()
@@ -192,6 +193,13 @@ def register():
             return result
         else:
             return "-2"
+
+@app.route("/presentation.html", methods=["get"])
+def presentation():
+    f = open("templates/slides-deck.html", "r")
+    html = f.read()
+    f.close()
+    return html
         
 @socketio.on('message')
 def handle_message(message):
@@ -267,4 +275,5 @@ def get_status_info(data):
 
 
 if __name__ == "__main__":
-    socketio.run(app)
+    # socketio.run(app)
+    app.run(debug=True)

@@ -302,3 +302,13 @@ def db_update_end_time(conn, username, root, end_time):
     cursor.execute(update_sql)
     conn.commit()
     cursor.close()
+
+def db_get_user_email(conn, username):
+    cursor = conn.cursor()
+    read_sql = '''select email from user_info where username= '%s' ''' % username
+    cursor.execute(read_sql)
+    info = cursor.fetchone()
+    if info:
+        return info[0]
+    else:
+        return ""

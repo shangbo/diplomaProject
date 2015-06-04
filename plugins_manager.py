@@ -14,6 +14,8 @@ import time
 
 import util_functions as util
 import db_options as do
+from send_email import mail_main
+
 mylock = threading.RLock()
 
 ISOTIMEFORMAT = '%Y-%m-%d %X'
@@ -88,6 +90,15 @@ class PluginsManager(object):
         conn = do.db_connect()
         do.db_update_end_time(conn, self.username, self.root_url[0], time.strftime(ISOTIMEFORMAT, time.localtime()))
         do.db_close(conn)
+        #send_email
+        check_types = self.check_types.split(',')
+        report_names = []
+        for mod_name in check_types:
+            if mod_name:
+                m = md5.new()
+                m.update(self.username + self.root_url[0] + mod_name)
+                report_names.append(m.hexdigest() + ".xml")
+        mail_main(self.username, report_names)
         del self
 
 
