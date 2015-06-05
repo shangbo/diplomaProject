@@ -1,0 +1,4 @@
+<Buglist coding="utf-8" root_url="http://127.0.0.1:8000/" type="mod_xss" username="loftysoul"><Bug><url>http://127.0.0.1:8000/sql_injection?user=loftysoul&amp;id=199</url><Status>Normal</Status><log>userNo bugs
+idNo bugs
+</log></Bug><Bug><url>http://127.0.0.1:8000/xss_injection?rr=xxx</url><Status>Normal</Status><log>rr:["&lt;script&gt;alert('rr')&lt;/script&gt;"]
+</log></Bug></Buglist>

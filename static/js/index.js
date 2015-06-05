@@ -211,7 +211,7 @@ $(document).ready(function() {
                     var table_ele = $(table_ele_str);
                     var head_ele = $("<thead><tr><th>Url</th><th>Paras</th><th>Status</th></tr></thead>");
                     table_ele.append(head_ele);
-                    var body_ele = $("<tbody id='process_tbody'></tbody>");
+                    var body_ele = $("<tbody id=" + type_info + "_process_tbody></tbody>");
                     table_ele.append(body_ele);
                     $(type_info_ele.children('.am-panel-collapse').children()).append(table_ele);
                     socket.emit('get_status_info', {"type_info":type_info,"url_info":url_info,"count":count})
@@ -232,15 +232,19 @@ $(document).ready(function() {
         var url_info = data['url_info']
         if(data['result'] !== ""){
             var item_html = "";
-            if(data['result']["status"]==="ok" || data['result']["status"]>=2){
+            if(data['result']["status"]==="ok" || data['result']["status"]===2){
                 item_html += '<tr class="am-success">';
             }
             else if(data['result']["status"]==="doing") {
                 item_html += '<tr class="am-warning">';
             }
             else if(data['result']["status"]===-1){
-                item_html += '<tr class="am-danger>';
+                item_html += '<tr class="am-danger">';
             }
+            else if(data['result']["status"]>=3){
+                item_html += '<tr class="am-danger">';
+            }
+
             item_html += "<td>" + data['result']["url"] + "</td>";
             item_html += "<td>" + data['result']["paras"] + "</td>";
             if(data['result']["status"]===-1){
@@ -252,8 +256,10 @@ $(document).ready(function() {
             else{
                 item_html += "<td>" + data['result']["status"] + "</td>";
             }
-            item_html += "</tr>"
-            body_ele = $("#process_tbody");
+            item_html += "</tr>";
+            body_ele = $("#" + type_info +"_process_tbody");
+            console.log(body_ele);
+            console.log("#" + type_info +"_process_tbody");
             body_ele.append($(item_html));
             count += 1;
             socket.emit('get_status_info', {"type_info":type_info,"url_info":url_info,"count":count});

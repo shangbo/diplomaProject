@@ -23,7 +23,7 @@ class PageWorker(threading.Thread):
     def __init__(self, page_queue, store_queue, root_url, request_num, stop_flag, time_out=5):
         PageWorker.worker_count += 1
         self._id = PageWorker.worker_count
-        threading.Thread.__init__(self,name="page_worker_%d" % self._id)
+        threading.Thread.__init__(self, name="page_worker_%d" % self._id)
         self.request_num = request_num
         self.stop_flag = stop_flag
         self.page_queue = page_queue
@@ -40,7 +40,7 @@ class PageWorker(threading.Thread):
                 res = callback(self.getName(), args)
                 self._deal_info(res)
             except Queue.Empty:
-                pass
+                break
                 # print "".join([self.getName(),":no task\n"])
             except:
                 print "thread %s had some error: %s"  % (self.getName(), sys.exc_info())
@@ -142,11 +142,12 @@ class PageWorker(threading.Thread):
 
 class StoreWorker(threading.Thread):
     worker_count = 0
-    def __init__(self, username , store_queue, root_url, request_num, stop_flag, time_out=5):
+    def __init__(self, page_queue, username, store_queue, root_url, request_num, stop_flag, time_out=5):
         StoreWorker.worker_count += 1
         self._id = StoreWorker.worker_count
         threading.Thread.__init__(self,name="store_worker_%d" % self._id)
         self.store_queue = store_queue
+        self.page_queue = page_queue
         self.root_url = root_url
         self.time_out = time_out
         self.stop_flag = stop_flag
@@ -176,9 +177,10 @@ class StoreWorker(threading.Thread):
         conn = db_op.db_connect()
         count = db_op.db_get_count(conn, self.root_url, self.username)
         mylock.acquire()
+        print "queue size:" + str(self.store_queue.qsize())
         print "count:" + str(count)
         mylock.release()
-        if count > self.request_num:
+        if count >= self.request_num or self.page_queue.empty():
             self.stop_flag[0] = True
             db_op.db_update_scan_status(conn, 2, self.username, self.root_url[0])
         db_op.db_close(conn)
@@ -197,16 +199,15 @@ class RequestManager(object):
         self.request_num = request_num
         self.root_url = []
         self.username = username
-        self.stop_flag = [False,]
+        self.stop_flag = [False, ]
         self._recruit_threads()
-        
 
     def _recruit_threads(self):
         for i in range(self.worker_num):
             page_worker = PageWorker(self.page_queue, self.store_queue, self.root_url, self.request_num, self.stop_flag)
             self.page_workers.append(page_worker)
         for i in range(self.worker_num):
-            store_worker = StoreWorker(self.username, self.store_queue, self.root_url, self.request_num, self.stop_flag)
+            store_worker = StoreWorker(self.page_queue, self.username, self.store_queue, self.root_url, self.request_num, self.stop_flag)
             self.store_workers.append(store_worker)
 
     def add_job(self, callback, *args):
@@ -260,7 +261,6 @@ if __name__ == "__main__":
                 request_number = int(opt[1])
             if opt[0] == "--thread_num":
                 thread_number = int(opt[1])
-
     if get_url:
         tp = RequestManager("loftysoul", worker_num=thread_number, request_num=request_number)
         tp.add_job(deal_page, root_url)

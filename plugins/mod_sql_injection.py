@@ -24,12 +24,15 @@ def get_url(item):
 
 def run(thread_name, item):
     url, data, method = get_url(item)
-    some_stuff = ["how do you want to proceed?", pexpect.EOF, pexpect.TIMEOUT, "Do you want to follow?"]
-    stuff_map = {0: "c", 1: "", 2: "", 3: "n"}
+    some_stuff = ["how do you want to proceed?", pexpect.EOF, pexpect.TIMEOUT, "Do you want to follow?",
+                  "Do you want to skip test payloads specific for other DBMSes?",
+                  "extending provided level (1) and risk (1) values",
+                  "Do you want to keep testing the others"]
+    stuff_map = {0: "c", 1: "", 2: "", 3: "n", 4: "y", 5: "y", 6: "y"}
     url = '"' + url + '"'
     injectable_point = []
     for index, key in enumerate(data):
-        string = "'%s' is injectable" % key[0]
+        string = "GET parameter '%s' is vulnerable." % key[0]
         some_stuff.append(string)
         some_stuff.append("[WARNING] GET parameter '%s'" % key[0])
         stuff_map[some_stuff.index(string)] = key[0]
@@ -82,6 +85,24 @@ def run(thread_name, item):
                 log += before
                 log += after
                 command.sendline(stuff_map[3])
+            elif index == 4:
+                before = command.before
+                after = command.after
+                log += before
+                log += after
+                command.sendline(stuff_map[4])
+            elif index == 5:
+                before = command.before
+                after = command.after
+                log += before
+                log += after
+                command.sendline(stuff_map[5])
+            elif index == 6:
+                before = command.before
+                after = command.after
+                log += before
+                log += after
+                command.sendline(stuff_map[6])
             else:
                 before = command.before
                 after = command.after
